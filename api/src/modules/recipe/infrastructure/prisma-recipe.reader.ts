@@ -14,6 +14,7 @@ export class PrismaRecipeReader implements RecipeReader {
                 id: true,
                 title: true,
                 description: true,
+                basePortions: true,
                 category: true,
                 imageUrl: true,
                 createdAt: true,

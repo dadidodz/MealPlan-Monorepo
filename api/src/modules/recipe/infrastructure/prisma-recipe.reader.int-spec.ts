@@ -34,6 +34,7 @@ describe('PrismaRecipeReader', () => {
         expect(secondPage.map((r) => r.title)).toEqual(['Recette 1']);
         expect(secondPage[0]).toMatchObject({
             description: null,
+            basePortions: 4,
             category: 'dessert',
             imageUrl: null,
         });

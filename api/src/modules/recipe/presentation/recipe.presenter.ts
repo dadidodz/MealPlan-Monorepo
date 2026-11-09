@@ -37,6 +37,7 @@ export class RecipePresenter {
             id: recipe.id,
             title: recipe.title,
             description: recipe.description,
+            basePortions: recipe.basePortions,
             category: recipe.category,
             imageUrl: recipe.imageUrl,
             createdAt: recipe.createdAt.toString(),

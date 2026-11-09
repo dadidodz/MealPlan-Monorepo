@@ -11,7 +11,7 @@ is now **strict and grouped by feature**: each feature (`recipe`, `ingredient`) 
 four layers inside.
 
 ```
-          HTTP request                                   PostgreSQL, Gemini, video extractor
+          HTTP request                                   PostgreSQL, Gemini, yt-dlp + ffmpeg
                │                                                     ▲
                ▼                                                     │
   ┌─ presentation ──────────────┐                     ┌─ infrastructure ─────────────────┐
@@ -32,7 +32,7 @@ four layers inside.
 - **application** — the use cases ("create a recipe", "extract a draft from a link"). They orchestrate: load
   entities through ports, call entity methods, save. They only know the domain.
 - **infrastructure** — the **adapters**: classes implementing the ports with real technology (Prisma, the Gemini
-  SDK, `fetch` to the video extractor, an in-memory job store).
+  SDK, the `yt-dlp` program run with `execFile`, an in-memory job store).
 - **presentation** — the HTTP edge: controllers, DTOs (shape of requests and responses), presenters (turn an entity
   into a response DTO).
 
@@ -44,7 +44,7 @@ this (`no-restricted-imports`: domain/application can't import NestJS, Prisma or
 
 ```
 src/
-  main.ts                         starts NestJS: /api prefix, CORS, graceful shutdown
+  main.ts                         starts NestJS: /api prefix, CORS, Swagger UI (/api/docs), graceful shutdown
   app.module.ts                   root module: imports the modules, global validation pipe + error filter
   infrastructure/database/        PrismaService (the database connection, shared by every module)
   shared/                         code used by several modules
@@ -151,7 +151,7 @@ Every business error extends `DomainError` with a stable `code` (read by the UI)
 | `ExtractionJobNotFoundError` | `EXTRACTION_JOB_NOT_FOUND` | 404 | SSE stream asked for an unknown or expired job |
 | `NotARecipeError` | `NOT_A_RECIPE` | (SSE) | Gemini says the video isn't a recipe |
 | `InvalidAiOutputError` | `INVALID_AI_OUTPUT` | (SSE) | Gemini's JSON doesn't have the expected shape |
-| `VideoDownloadFailedError` | `VIDEO_DOWNLOAD_FAILED` | (SSE) | the video extractor failed (down, private or deleted video) |
+| `VideoDownloadFailedError` | `VIDEO_DOWNLOAD_FAILED` | (SSE) | yt-dlp failed (private or deleted video, timeout, file too big) |
 
 The last three happen inside a background job: they don't become HTTP errors but an `error` message on the SSE
 stream, carrying the same `code` (see §6). The UI turns each code into French text.
@@ -179,7 +179,7 @@ UI ── POST /api/recipes/extract {url} ──▶ ExtractRecipeDraftUseCase.ex
 
 UI ── GET /api/recipes/stream/:jobId (SSE) ──▶ the job's result, when it ends
       background job:
-        VideoDownloaderPort.download  → YtDlpVideoDownloader → POST to the Python service → mp4 + description
+        VideoDownloaderPort.download  → YtDlpVideoDownloader → runs yt-dlp (+ ffmpeg) → mp4 + description
         RecipeAnalyzerPort.analyze    → GeminiRecipeAnalyzer: upload video, wait, ask with prompt v3 + JSON schema
                                         → parseExtractedRecipeDraft checks the JSON (no blind cast)
         success → extraction stored as SUCCESS (draft, model, prompt version, extractedAt)
@@ -206,7 +206,7 @@ Details worth knowing:
 | Method + path | Controller method | Use case | Answer |
 |---|---|---|---|
 | `GET /api/app/health` | `AppController.getHealth` | — | `{ status: "ok", timestamp }` |
-| `GET /api/recipes?page&limit` | `findAll` | `GetAllRecipesUseCase` (reader) | recipe summaries, newest first |
+| `GET /api/recipes?page&limit&search` | `findAll` | `GetAllRecipesUseCase` (reader) | recipe summaries, newest first (`search` not built yet) |
 | `GET /api/recipes/:id` | `findOne` | `GetRecipeByIdUseCase` | full recipe, ingredients in recipe order |
 | `POST /api/recipes` | `create` | `CreateRecipeUseCase` | 201 + full recipe |
 | `PATCH /api/recipes/:id` | `updateRecipe` | `UpdateRecipeUseCase` | full recipe (only the fields sent change) |
@@ -234,7 +234,7 @@ Details worth knowing:
 |---|---|---|
 | `pnpm test` | **unit**: entities, use cases with fakes, parser, presenters, pure functions | seconds, nothing |
 | `pnpm test:int` | **integration**: each Prisma adapter against a real PostgreSQL | Docker |
-| `pnpm test:e2e` | **HTTP** (supertest): the whole app, request → database → response (no browser) | Docker |
+| `pnpm test:e2e` | **HTTP** (supertest): the whole app, request → database → response (no browser); `contract.e2e-spec.ts` checks real responses against `../contracts/openapi.yaml` | Docker |
 
 Integration and e2e start a throwaway PostgreSQL with Testcontainers (`test/setup/`), apply the migrations, and
 remove it at the end; your dev database is never touched. `pnpm test:cov` enforces 80% coverage on `domain/`,
@@ -254,7 +254,7 @@ The `Dockerfile` builds two images from the same commit (published together by `
 |---|---|
 | change a business rule of a recipe | `modules/recipe/domain/recipe.entity.ts` (+ its spec) |
 | add an endpoint | controller + DTO (`presentation/`), a use case (`application/`), wiring in `recipe.module.ts` |
-| change what an endpoint returns | the response DTO + `recipe.presenter.ts` (and the UI type in `MealPlan-UI`) |
+| change what an endpoint returns | the response DTO + `recipe.presenter.ts`, `../contracts/openapi.yaml` if the route is in it (and the shared type in `../shared/types`) |
 | change a database query | the Prisma adapter in `infrastructure/` + its `.int-spec.ts` |
 | add a column | `prisma/schema.prisma` → migration → mapper → entity/DTO (skill `mealplan-schema-change`) |
 | change the AI prompt | new `prompts/extract-recipe.v<N>.prompt.ts`, point the Gemini adapter to it |

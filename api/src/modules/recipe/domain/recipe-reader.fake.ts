@@ -10,15 +10,27 @@ export class InMemoryRecipeReader implements RecipeReader {
         const summaries = [...this.recipes.recipes.values()]
             .sort((a, b) => Temporal.Instant.compare(b.createdAt, a.createdAt))
             .slice(page.offset, page.offset + page.limit)
-            .map(({ id, title, description, category, imageUrl, createdAt, updatedAt }) => ({
-                id,
-                title,
-                description,
-                category,
-                imageUrl,
-                createdAt,
-                updatedAt,
-            }));
+            .map(
+                ({
+                    id,
+                    title,
+                    description,
+                    basePortions,
+                    category,
+                    imageUrl,
+                    createdAt,
+                    updatedAt,
+                }) => ({
+                    id,
+                    title,
+                    description,
+                    basePortions,
+                    category,
+                    imageUrl,
+                    createdAt,
+                    updatedAt,
+                }),
+            );
         return Promise.resolve(summaries);
     }
 }

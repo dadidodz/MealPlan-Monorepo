@@ -8,14 +8,13 @@ import {
     Param,
     MessageEvent,
     Sse,
-    DefaultValuePipe,
-    ParseIntPipe,
     Query,
     ParseUUIDPipe,
     BadRequestException,
     Patch,
 } from '@nestjs/common';
 import { CreateRecipeDto } from './create-recipe.dto';
+import { ListRecipesQueryDto } from './list-recipes-query.dto';
 import { CreateRecipeUseCase } from '../application/create-recipe.use-case';
 import { RecipePresenter } from './recipe.presenter';
 import { withHeartbeat } from './sse-heartbeat';
@@ -101,11 +100,8 @@ export class RecipeController {
 
     @Get()
     @HttpCode(HttpStatus.OK)
-    async findAll(
-        @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-        @Query('limit', new DefaultValuePipe(25), ParseIntPipe) limit: number,
-    ): Promise<RecipeSummaryResponseDto[]> {
-        const recipes = await this.getAllRecipesUseCase.execute(page, limit);
+    async findAll(@Query() query: ListRecipesQueryDto): Promise<RecipeSummaryResponseDto[]> {
+        const recipes = await this.getAllRecipesUseCase.execute(query.page, query.limit);
 
         return recipes.map((recipe) => RecipePresenter.toSummaryResponse(recipe));
     }

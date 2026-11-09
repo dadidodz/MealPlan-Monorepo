@@ -8,6 +8,7 @@ export interface RecipeSummary {
     id: string;
     title: string;
     description: string | null;
+    basePortions: number;
     category: RecipeCategory;
     imageUrl: string | null;
     createdAt: Temporal.Instant;
