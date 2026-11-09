@@ -1,0 +1,284 @@
+<div class="relative w-full flex flex-col h-full">
+  <!-- EDITOR HEADER -->
+  <div class="flex items-center gap-3 mb-6">
+    <button
+      type="button"
+      class="btn btn-sm btn-ghost btn-circle bg-base-200 hover:bg-base-200"
+      aria-label="Retour"
+      (click)="onBackClick()"
+    >
+      <app-icon name="lucideArrowLeft" size="1.2rem" />
+    </button>
+    <!-- Slightly smaller: the modal already has its own title -->
+    <h2 class="text-lg font-bold text-base-content">Vérification des données</h2>
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  @if (extractStatus() === 'loading') {
+    <div
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-base-100/80 backdrop-blur-sm rounded-xl"
+    >
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+      <p class="mt-4 font-bold text-lg text-base-content">L'IA rédige la recette...</p>
+      <p class="text-sm text-base-content/70">Cela peut prendre quelques secondes</p>
+    </div>
+  }
+
+  <!-- FIELDS (no card, plain flex); the <form> belongs to the page -->
+  <div class="flex flex-col gap-8 w-full">
+    <!-- BASIC INFO -->
+    <div class="flex flex-col gap-4">
+      <!-- CATEGORY PICKER (avatar style) -->
+      <!-- ROW 1: category icon + title -->
+      <div class="flex items-end gap-3 w-full">
+        <!-- Category button: shows the icon of the picked category -->
+        <div class="flex-none">
+          <!-- Invisible fake label to align the button with the title input -->
+          <div class="label"><span class="label-text opacity-0"></span></div>
+          <button
+            type="button"
+            class="btn btn-circle bg-base-200 border-2 border-base-content/15 hover:border-primary hover:bg-base-100 transition-colors shadow-sm"
+            [attr.aria-label]="'Catégorie : ' + categoryLabels[selectedCategory()]"
+            [attr.aria-expanded]="isCategoryPickerOpen()"
+            (click)="toggleCategoryPicker()"
+          >
+            <app-icon [name]="selectedCategoryIcon()" size="1.5rem" class="text-primary" />
+          </button>
+        </div>
+
+        <!-- Title field -->
+        <!-- flex-1 takes all the remaining space right of the icon -->
+        <label class="form-control flex-1">
+          <div class="label"><span class="label-text font-bold">Titre de la recette</span></div>
+          <input
+            type="text"
+            [formField]="recipeForm().title"
+            class="input bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-full text-base transition-colors"
+            [class.border-error]="recipeForm().title().invalid() && recipeForm().title().touched()"
+          />
+          <app-field-errors [field]="recipeForm().title()" />
+        </label>
+      </div>
+
+      <!-- ROW 2: category grid, under the icon and title, full width -->
+      @if (isCategoryPickerOpen()) {
+        <div
+          class="grid grid-cols-3 sm:grid-cols-5 gap-2 p-3 bg-base-200/50 border-2 border-base-content/10 rounded-2xl w-full animate-fade-in-down mt-1"
+        >
+          @for (category of categories; track category) {
+            <button
+              type="button"
+              class="btn btn-sm h-auto min-h-12 py-2 flex-col gap-1 font-normal"
+              [class.btn-primary]="selectedCategory() === category"
+              [class.btn-ghost]="selectedCategory() !== category"
+              [attr.aria-pressed]="selectedCategory() === category"
+              (click)="selectCategory(category)"
+            >
+              <app-icon [name]="categoryIcons[category]" size="1.2rem" />
+              <span class="text-xs leading-tight">{{ categoryLabels[category] }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Servings: 50% on desktop, 100% on mobile -->
+      <label class="form-control w-full sm:w-1/2">
+        <div class="label"><span class="label-text font-bold">Portions de base</span></div>
+        <input
+          type="number"
+          [formField]="recipeForm().basePortions"
+          class="input bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-full"
+        />
+        <app-field-errors [field]="recipeForm().basePortions()" />
+      </label>
+
+      <label class="form-control w-full">
+        <div class="label"><span class="label-text font-bold">Description courte</span></div>
+        <textarea
+          [formField]="recipeForm().description"
+          cdkTextareaAutosize
+          class="textarea bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-full h-24 text-base transition-colors"
+        ></textarea>
+      </label>
+    </div>
+
+    <!-- INGREDIENTS (most of the mobile work) -->
+    <div class="space-y-4 mt-2">
+      <h3 class="font-bold text-lg border-b-2 border-base-content/15 pb-2">Ingrédients</h3>
+
+      <div class="flex flex-col gap-3">
+        @for (ingredient of recipeForm().ingredients; track $index; let i = $index) {
+          <!-- flex-wrap on mobile allows controlled line breaks -->
+          <div
+            class="flex flex-wrap sm:flex-nowrap gap-2 bg-base-200/30 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-base-content/5 sm:border-none items-center"
+          >
+            <!-- QTY + UNIT (bottom left on mobile, first on desktop) -->
+            <div class="flex items-center gap-2 flex-1 sm:flex-none order-2 sm:order-1">
+              <!-- bg-base-200 without transparency -->
+              <input
+                type="number"
+                [formField]="ingredient.quantity"
+                aria-label="Quantité"
+                placeholder="Qté"
+                class="input bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-20 flex-1 sm:flex-none"
+              />
+
+              <select
+                [formField]="ingredient.unit"
+                aria-label="Unité"
+                class="select bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-28 flex-1 sm:flex-none"
+              >
+                <!-- Selectable: "no unit" can be picked again after choosing one -->
+                <option value="">---</option>
+                @for (unit of allowedUnits; track unit) {
+                  <option [value]="unit">{{ unit }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- NAME (full width on top on mobile, in the middle on desktop) -->
+            <div class="relative w-full sm:flex-1 sm:w-auto order-1 sm:order-2">
+              <input
+                type="text"
+                [formField]="ingredient.name"
+                aria-label="Nom de l'ingrédient"
+                placeholder="Nom de l'ingrédient"
+                class="input bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-full font-medium"
+                autocomplete="off"
+                (input)="onSearchInput($event, i)"
+                (focus)="onInputFocus($event, i)"
+                (blur)="onInputBlur()"
+              />
+
+              <!-- DROPDOWN -->
+              @if (activeDropdownIndex() === i && (isSearching() || searchResults().length > 0)) {
+                <ul
+                  class="absolute z-50 w-full bg-base-100 shadow-xl rounded-box p-2 top-full mt-2 border-2 border-base-content/15 max-h-60 overflow-y-auto"
+                >
+                  @if (isSearching()) {
+                    <li class="flex justify-center p-4">
+                      <span class="loading loading-spinner text-primary"></span>
+                    </li>
+                  } @else {
+                    @for (result of searchResults(); track result.code) {
+                      <li>
+                        <a
+                          class="block p-3 hover:bg-base-200 rounded-lg cursor-pointer transition-colors first-letter:uppercase"
+                          (mousedown)="selectIngredient(result, i)"
+                        >
+                          {{ result.name }}
+                        </a>
+                      </li>
+                    }
+                    @if (searchResults().length === 0) {
+                      <li class="p-3 text-sm text-base-content/70 italic text-center">
+                        Nouvel ingrédient.
+                      </li>
+                    }
+                  }
+                </ul>
+              }
+            </div>
+
+            <!-- BIN (bottom right on mobile, last on desktop) -->
+            <button
+              type="button"
+              class="btn btn-square btn-ghost text-error order-3"
+              aria-label="Supprimer l'ingrédient"
+              (click)="removeIngredient(i)"
+            >
+              <app-icon name="lucideTrash2" />
+            </button>
+
+            <div class="w-full order-4">
+              <app-field-errors [field]="ingredient.name()" />
+              <app-field-errors [field]="ingredient.quantity()" />
+            </div>
+          </div>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-sm btn-outline border-2 border-base-content/15 w-full sm:w-auto mt-2"
+        (click)="addIngredient()"
+      >
+        + Ajouter un ingrédient
+      </button>
+    </div>
+
+    <!-- STEPS -->
+    <div class="space-y-4 mt-2">
+      <h3 class="font-bold text-lg border-b-2 border-base-content/15 pb-2">
+        Étapes de préparation
+      </h3>
+
+      <!-- 1. cdkDropList defines the area items can be dropped in -->
+      <div class="flex flex-col gap-4" cdkDropList (cdkDropListDropped)="onDropInstruction($event)">
+        @for (step of recipeForm().instructions; track $index; let i = $index) {
+          <!-- 2. cdkDrag makes the whole item draggable -->
+          <!-- bg-base-100 keeps the item opaque while it floats during the drag -->
+          <div class="flex gap-2 items-start bg-base-100 p-1 rounded-lg" cdkDrag>
+            <!-- 3. HANDLE (cdkDragHandle): only this area starts the drag -->
+            <button
+              type="button"
+              class="btn btn-sm btn-ghost px-1 mt-2 text-base-content/40 cursor-grab active:cursor-grabbing hover:text-base-content hover:bg-base-200 flex-none"
+              [attr.aria-label]="`Déplacer l'étape ${i + 1}`"
+              cdkDragHandle
+            >
+              <app-icon name="lucideGripVertical" size="1.2rem" />
+            </button>
+
+            <!-- Step number badge (updates itself) -->
+            <div class="badge badge-primary font-bold mt-3 flex-none">{{ i + 1 }}</div>
+
+            <div class="flex-1 min-w-0">
+              <textarea
+                [formField]="step"
+                cdkTextareaAutosize
+                aria-label="Étape {{ i + 1 }}"
+                class="textarea bg-base-200 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 min-h-[120px] w-full text-base transition-colors leading-relaxed"
+              ></textarea>
+              <app-field-errors [field]="step()" />
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-square btn-ghost text-error mt-1 flex-none"
+              aria-label="Supprimer l'étape"
+              (click)="removeInstruction(i)"
+            >
+              <app-icon name="lucideTrash2" />
+            </button>
+          </div>
+        }
+      </div>
+      <app-field-errors [field]="recipeForm().instructions()" />
+
+      <button
+        type="button"
+        class="btn btn-sm btn-outline border-2 border-base-content/15 w-full sm:w-auto mt-2"
+        (click)="addInstruction()"
+      >
+        + Ajouter une étape
+      </button>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="mt-4 pt-4 border-t-2 border-base-content/15 flex justify-end">
+      <!-- Full-width button on mobile for easier submission -->
+      <button
+        type="submit"
+        class="btn btn-primary shadow-sm w-full sm:w-auto"
+        [disabled]="extractStatus() === 'loading' || recipeForm()().submitting()"
+      >
+        @if (recipeForm()().submitting()) {
+          <span class="loading loading-spinner"></span>
+          Enregistrement...
+        } @else {
+          Enregistrer la recette
+        }
+      </button>
+    </div>
+  </div>
+</div>

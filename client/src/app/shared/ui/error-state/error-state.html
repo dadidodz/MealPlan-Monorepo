@@ -1,0 +1,7 @@
+<div
+  role="alert"
+  class="alert alert-error alert-soft flex flex-col gap-3 text-center sm:flex-row sm:text-left"
+>
+  <span class="flex-1">{{ message() }}</span>
+  <button type="button" class="btn btn-sm" (click)="retry.emit()">Réessayer</button>
+</div>

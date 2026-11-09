@@ -1,0 +1,14 @@
+// Toast leaving (timer or tap): fades out and slides up before Angular removes it (`animate.leave` in app.html).
+// Arrival is animated by DaisyUI (`.toast > *`).
+@media (prefers-reduced-motion: no-preference) {
+    .toast-leave {
+        animation: toast-fade-out 300ms ease-in forwards;
+    }
+}
+
+@keyframes toast-fade-out {
+    to {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+}

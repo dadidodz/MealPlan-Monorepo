@@ -1,0 +1,5 @@
+@if (field().touched()) {
+  @for (error of field().errors(); track error.kind) {
+    <p class="text-error text-sm mt-1">{{ error.message }}</p>
+  }
+}

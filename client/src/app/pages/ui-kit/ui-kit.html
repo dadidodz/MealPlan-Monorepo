@@ -1,0 +1,244 @@
+<div>
+  <!-- HEADER & THEME SELECTOR -->
+  <div
+    class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-base-100 p-6 rounded-box shadow-sm mb-8"
+  >
+    <div>
+      <h1 class="text-3xl font-bold text-primary">Laboratoire UI</h1>
+      <p class="text-base-content/70">Testez les thèmes et les composants sur mobile/desktop.</p>
+    </div>
+
+    <select
+      class="select select-bordered select-primary w-full sm:w-64"
+      [value]="themeStore.currentTheme()"
+      (change)="onThemeChange($event)"
+    >
+      @for (theme of themeStore.availableThemes; track theme) {
+        <option [value]="theme">Thème : {{ theme }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- COMPONENT GRID -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- BUTTONS -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Boutons</h2>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button type="button" class="btn btn-primary">Primary</button>
+          <button type="button" class="btn btn-secondary">Secondary</button>
+          <button type="button" class="btn btn-accent">Accent</button>
+          <button type="button" class="btn btn-neutral">Neutral</button>
+          <button type="button" class="btn btn-ghost">Ghost</button>
+          <button type="button" class="btn btn-link">Link</button>
+          <button type="button" class="btn btn-error">Error</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORMS -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Inputs & Formulaires</h2>
+        <div class="flex flex-col gap-4 mt-4">
+          <input type="text" placeholder="Input classique" class="input input-bordered w-full" />
+          <input
+            type="text"
+            placeholder="Input primary"
+            class="input input-bordered input-primary w-full"
+          />
+
+          <label class="label cursor-pointer justify-start gap-4">
+            <input type="checkbox" checked="checked" class="checkbox checkbox-primary" />
+            <span class="label-text">Case à cocher</span>
+          </label>
+
+          <label class="label cursor-pointer justify-start gap-4">
+            <input type="radio" name="radio-1" class="radio radio-primary" checked="checked" />
+            <span class="label-text">Bouton radio</span>
+          </label>
+
+          <input type="range" min="0" max="100" value="40" class="range range-primary" />
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDS / RECIPE MOCKUP -->
+    <div class="card bg-base-100 shadow-sm">
+      <figure class="bg-neutral text-neutral-content h-32 flex items-center justify-center">
+        <span class="opacity-50">Espace Image</span>
+      </figure>
+      <div class="card-body">
+        <h2 class="card-title">Barres au quinoa soufflé</h2>
+        <p class="text-sm text-base-content/70">
+          Des barres protéinées ultra gourmandes pour vos collations.
+        </p>
+        <div class="card-actions justify-end mt-4">
+          <button type="button" class="btn btn-primary btn-sm">Voir la recette</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BADGES -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Badges & Tags</h2>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <div class="badge">Défaut</div>
+          <div class="badge badge-neutral">Neutre</div>
+          <div class="badge badge-primary">Primaire</div>
+          <div class="badge badge-secondary">Secondaire</div>
+          <div class="badge badge-accent">Accent</div>
+          <div class="badge badge-ghost">Ghost</div>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <div class="badge badge-info gap-2">Info</div>
+          <div class="badge badge-success gap-2">Succès</div>
+          <div class="badge badge-warning gap-2">Attention</div>
+          <div class="badge badge-error gap-2">Erreur</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DROPDOWNS -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Menus Déroulants</h2>
+        <div class="flex flex-col gap-4 mt-4">
+          <!-- Dropdown on click -->
+          <div class="dropdown">
+            <div tabindex="0" role="button" class="btn btn-primary w-full">
+              Clique pour ouvrir ↓
+            </div>
+            <ul
+              tabindex="0"
+              class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-full mt-1"
+            >
+              <li><a>Éditer la recette</a></li>
+              <li><a>Ajouter aux favoris</a></li>
+              <li><a class="text-error">Supprimer</a></li>
+            </ul>
+          </div>
+
+          <!-- Dropdown on hover -->
+          <div class="dropdown dropdown-hover">
+            <div tabindex="0" role="button" class="btn btn-outline w-full">Survole-moi</div>
+            <ul
+              tabindex="0"
+              class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-full mt-1"
+            >
+              <li><a>Option 1</a></li>
+              <li><a>Option 2</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS (STATIC TOASTS) -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Alertes</h2>
+        <div class="flex flex-col gap-3 mt-4">
+          <div role="alert" class="alert alert-info py-2">
+            <span>Nouvelle mise à jour disponible.</span>
+          </div>
+          <div role="alert" class="alert alert-success py-2">
+            <span>Votre recette a été sauvegardée !</span>
+          </div>
+          <div role="alert" class="alert alert-warning py-2">
+            <span>Connexion internet instable.</span>
+          </div>
+          <div role="alert" class="alert alert-error py-2">
+            <span>Erreur lors de la suppression.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOASTS (shared/ui/toast-store): tap a toast to dismiss it -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Notifications</h2>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button
+            type="button"
+            class="btn btn-success"
+            (click)="toastStore.success('Recette ajoutée à votre carnet !')"
+          >
+            Succès
+          </button>
+          <button
+            type="button"
+            class="btn btn-error"
+            (click)="toastStore.error('Erreur lors de la sauvegarde.')"
+          >
+            Erreur
+          </button>
+          <button type="button" class="btn btn-info" (click)="toastStore.show('Information')">
+            Info
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR AND EMPTY STATES (shared/ui) -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">États erreur et vide</h2>
+        <div class="flex flex-col gap-4 mt-4">
+          <app-error-state [error]="sampleError" (retry)="onRetry()" />
+          <app-empty-state message="Aucune recette pour l'instant">
+            <button type="button" class="btn btn-primary btn-sm">Importer une recette</button>
+          </app-empty-state>
+        </div>
+      </div>
+    </div>
+
+    <!-- MORE FORM CONTROLS (switch, select) -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title border-b border-base-300 pb-2">Autres Inputs</h2>
+        <div class="flex flex-col gap-4 mt-4">
+          <!-- Standard select -->
+          <select class="select select-bordered w-full">
+            <option disabled selected>Choisissez une catégorie</option>
+            <option>Petit-déjeuner</option>
+            <option>Plat principal</option>
+            <option>Dessert</option>
+          </select>
+
+          <!-- Toggles -->
+          <div class="flex flex-col gap-2">
+            <label class="cursor-pointer label">
+              <span class="label-text">Mode privé</span>
+              <input type="checkbox" class="toggle toggle-primary" checked="checked" />
+            </label>
+            <label class="cursor-pointer label">
+              <span class="label-text">Notifications</span>
+              <input type="checkbox" class="toggle toggle-secondary" />
+            </label>
+          </div>
+
+          <!-- Textarea -->
+          <textarea
+            class="textarea textarea-bordered"
+            placeholder="Laissez un commentaire..."
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-12">
+    <h2 class="text-2xl font-bold mb-6 border-b border-base-300 pb-2">Composants Réels</h2>
+
+    <!-- REAL COMPONENT -->
+    <div class="bg-base-200 p-4 md:p-8 rounded-xl">
+      <form [formRoot]="mockForm">
+        <app-recipe-editor [recipeForm]="mockForm" [extractStatus]="'success'" />
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+<div class="max-w-3xl mx-auto w-full p-4 md:p-8">
+  @if (recipe.error(); as error) {
+    <app-error-state [error]="error" (retry)="recipe.reload()" />
+  } @else if (recipe.hasValue()) {
+    <form [formRoot]="recipeForm">
+      <app-recipe-editor [recipeForm]="recipeForm" (backRequested)="goBack()" />
+    </form>
+  } @else {
+    <!-- First load: skeleton shaped like the editor -->
+    <div class="flex flex-col gap-6">
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-24 w-full"></div>
+      <div class="skeleton h-48 w-full"></div>
+    </div>
+  }
+</div>

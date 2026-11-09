@@ -1,0 +1,562 @@
+openapi: 3.1.0
+info:
+    title: MealPlan API
+    version: 0.5.0
+    description: |
+        Contract of the meal planner and of the recipe list used by its recipe picker, written by hand before
+        the code (`SPECIFICATIONS.md` §2). The other existing routes are not documented yet.
+
+        Errors have two shapes:
+        - business errors (`DomainError`): `statusCode`, `message` and a stable `code` the UI reacts to;
+        - request validation errors (`ValidationError`, 400): NestJS's own body, without `code`.
+
+        Dates are calendar days (`YYYY-MM-DD`), without time or time zone.
+servers:
+    - url: /api
+tags:
+    - name: Planner
+      description: Meals planned on a day, for lunch or dinner.
+    - name: Recipes
+      description: The recipe book.
+
+paths:
+    /planned-meals:
+        get:
+            tags: [Planner]
+            operationId: listPlannedMeals
+            summary: List the meals planned between two days
+            description: |
+                Both days are included. Sorted by date, then lunch before dinner. An empty slot is simply absent.
+            parameters:
+                - $ref: '#/components/parameters/From'
+                - $ref: '#/components/parameters/To'
+            responses:
+                '200':
+                    description: The planned meals of the range (possibly none).
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/PlannedMealSummary'
+                            example:
+                                - id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                                  date: '2026-11-02'
+                                  mealType: DINNER
+                                  peopleCount: 4
+                                  recipe:
+                                      id: 3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f
+                                      title: Burger maison
+                                - id: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+                                  date: '2026-11-03'
+                                  mealType: LUNCH
+                                  peopleCount: 2
+                                  recipe:
+                                      id: 6a1f0c2d-8e3b-4c5a-b7d9-0e1f2a3b4c5d
+                                      title: Salade de tomates
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '422':
+                    description: '`from` is after `to`.'
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/DomainError'
+                                    - properties:
+                                          statusCode:
+                                              const: 422
+                                          code:
+                                              const: INVALID_DATE_RANGE
+                            example:
+                                statusCode: 422
+                                message: 'from (2026-11-08) must not be after to (2026-11-02)'
+                                code: INVALID_DATE_RANGE
+        post:
+            tags: [Planner]
+            operationId: createPlannedMeal
+            summary: Plan a recipe on a slot
+            description: |
+                One meal per slot: a taken slot is refused (409), never replaced. Past days are accepted.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreatePlannedMeal'
+                        example:
+                            date: '2026-11-02'
+                            mealType: DINNER
+                            recipeId: 3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f
+                            peopleCount: 4
+            responses:
+                '201':
+                    description: The meal is planned.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PlannedMeal'
+                            examples:
+                                burgerDinner:
+                                    $ref: '#/components/examples/BurgerDinner'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    $ref: '#/components/responses/RecipeNotFound'
+                '409':
+                    description: A meal is already planned on that slot (another device, a stale screen).
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/DomainError'
+                                    - properties:
+                                          statusCode:
+                                              const: 409
+                                          code:
+                                              const: SLOT_ALREADY_TAKEN
+                            example:
+                                statusCode: 409
+                                message: A meal is already planned for 2026-11-02 DINNER
+                                code: SLOT_ALREADY_TAKEN
+
+    /planned-meals/{id}:
+        parameters:
+            - $ref: '#/components/parameters/PlannedMealId'
+        get:
+            tags: [Planner]
+            operationId: getPlannedMeal
+            summary: Get a planned meal with its recipe scaled to the meal
+            responses:
+                '200':
+                    description: The planned meal.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PlannedMeal'
+                            examples:
+                                burgerDinner:
+                                    $ref: '#/components/examples/BurgerDinner'
+                '404':
+                    $ref: '#/components/responses/PlannedMealNotFound'
+        patch:
+            tags: [Planner]
+            operationId: updatePlannedMeal
+            summary: Change the recipe and / or the number of people of a planned meal
+            description: A meal can't move to another slot (remove it and plan it again).
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdatePlannedMeal'
+                        example:
+                            peopleCount: 4
+            responses:
+                '200':
+                    description: The updated meal, quantities scaled to the new number of people.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PlannedMeal'
+                            examples:
+                                burgerDinner:
+                                    $ref: '#/components/examples/BurgerDinner'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '404':
+                    description: The planned meal, or the new recipe, doesn't exist.
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/DomainError'
+                                    - properties:
+                                          statusCode:
+                                              const: 404
+                                          code:
+                                              enum: [PLANNED_MEAL_NOT_FOUND, RECIPE_NOT_FOUND]
+                            examples:
+                                plannedMealNotFound:
+                                    $ref: '#/components/examples/PlannedMealNotFound'
+                                recipeNotFound:
+                                    $ref: '#/components/examples/RecipeNotFound'
+        delete:
+            tags: [Planner]
+            operationId: deletePlannedMeal
+            summary: Remove a planned meal
+            description: The slot is empty again; the recipe stays in the book.
+            responses:
+                '204':
+                    description: The meal is removed.
+                '404':
+                    $ref: '#/components/responses/PlannedMealNotFound'
+
+    /recipes:
+        get:
+            tags: [Recipes]
+            operationId: listRecipes
+            summary: List the recipes of the book, a page at a time
+            description: |
+                Same order as the book. The last page has fewer than `limit` recipes (no total is returned).
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 1000
+                      default: 1
+                - name: limit
+                  in: query
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 25
+                - name: search
+                  in: query
+                  description: |
+                      Recipe title, tolerant to typos and accents ("tomatte" finds "Salade de tomates").
+                      Not built yet (`BACKLOG.md` "Recipe search"): until then the API ignores it.
+                  schema:
+                      type: string
+                      maxLength: 100
+            responses:
+                '200':
+                    description: One page of recipes (possibly empty).
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/RecipeSummary'
+                            example:
+                                - id: 3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f
+                                  title: Burger maison
+                                  description: Steak haché, cheddar et oignons confits.
+                                  basePortions: 2
+                                  category: meat
+                                  imageUrl: null
+                                  createdAt: '2026-10-20T18:42:11.123Z'
+                                  updatedAt: '2026-10-21T09:05:00.000Z'
+                                - id: 6a1f0c2d-8e3b-4c5a-b7d9-0e1f2a3b4c5d
+                                  title: Salade de tomates
+                                  description: null
+                                  basePortions: 4
+                                  category: salad
+                                  imageUrl: null
+                                  createdAt: '2026-10-18T12:00:00.000Z'
+                                  updatedAt: '2026-10-18T12:00:00.000Z'
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+
+components:
+    parameters:
+        PlannedMealId:
+            name: id
+            in: path
+            required: true
+            description: A malformed id answers 404, like an unknown one.
+            schema:
+                type: string
+                format: uuid
+        From:
+            name: from
+            in: query
+            required: true
+            description: First day of the range, included.
+            schema:
+                type: string
+                format: date
+            example: '2026-11-02'
+        To:
+            name: to
+            in: query
+            required: true
+            description: Last day of the range, included.
+            schema:
+                type: string
+                format: date
+            example: '2026-11-08'
+
+    schemas:
+        MealType:
+            type: string
+            enum: [LUNCH, DINNER]
+        RecipeCategory:
+            description: Dish type when it is distinctive, else the main ingredient.
+            type: string
+            enum:
+                - meat
+                - poultry
+                - fish
+                - vegetarian
+                - stew
+                - salad
+                - soup
+                - pizza
+                - sandwich
+                - breakfast
+                - dessert
+                - drink
+                - other
+        PeopleCount:
+            description: How many people eat this meal. Whole number, 1 or more.
+            type: integer
+            minimum: 1
+
+        PlannedMealSummary:
+            type: object
+            additionalProperties: false
+            required: [id, date, mealType, peopleCount, recipe]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                date:
+                    type: string
+                    format: date
+                mealType:
+                    $ref: '#/components/schemas/MealType'
+                peopleCount:
+                    $ref: '#/components/schemas/PeopleCount'
+                recipe:
+                    type: object
+                    additionalProperties: false
+                    required: [id, title]
+                    properties:
+                        id:
+                            type: string
+                            format: uuid
+                        title:
+                            type: string
+        PlannedMeal:
+            type: object
+            additionalProperties: false
+            required: [id, date, mealType, peopleCount, recipe]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                date:
+                    type: string
+                    format: date
+                mealType:
+                    $ref: '#/components/schemas/MealType'
+                peopleCount:
+                    $ref: '#/components/schemas/PeopleCount'
+                recipe:
+                    type: object
+                    additionalProperties: false
+                    required: [id, title, category, imageUrl, instructions, ingredients]
+                    properties:
+                        id:
+                            type: string
+                            format: uuid
+                        title:
+                            type: string
+                        category:
+                            $ref: '#/components/schemas/RecipeCategory'
+                        imageUrl:
+                            type: [string, 'null']
+                        instructions:
+                            description: Ordered steps.
+                            type: array
+                            items:
+                                type: string
+                        ingredients:
+                            description: In recipe order.
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/PlannedMealIngredient'
+        PlannedMealIngredient:
+            type: object
+            additionalProperties: false
+            required: [ingredientId, name, quantity, unit]
+            properties:
+                ingredientId:
+                    type: string
+                    format: uuid
+                name:
+                    type: string
+                quantity:
+                    description: |
+                        Scaled to the meal: recipe quantity × `peopleCount` ÷ `basePortions`, rounded to 2
+                        decimals. `null` for an ingredient without quantity ("sel").
+                    type: [number, 'null']
+                unit:
+                    type: [string, 'null']
+        CreatePlannedMeal:
+            type: object
+            additionalProperties: false
+            required: [date, mealType, recipeId, peopleCount]
+            properties:
+                date:
+                    type: string
+                    format: date
+                mealType:
+                    $ref: '#/components/schemas/MealType'
+                recipeId:
+                    type: string
+                    format: uuid
+                peopleCount:
+                    $ref: '#/components/schemas/PeopleCount'
+        UpdatePlannedMeal:
+            description: Only the fields sent change. `date` and `mealType` are refused (400).
+            type: object
+            additionalProperties: false
+            properties:
+                recipeId:
+                    type: string
+                    format: uuid
+                peopleCount:
+                    $ref: '#/components/schemas/PeopleCount'
+
+        RecipeSummary:
+            type: object
+            additionalProperties: false
+            required: [id, title, description, basePortions, category, imageUrl, createdAt, updatedAt]
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                title:
+                    type: string
+                description:
+                    type: [string, 'null']
+                basePortions:
+                    description: How many people the recipe is written for (pre-fills a planned meal's people).
+                    type: integer
+                    minimum: 1
+                category:
+                    $ref: '#/components/schemas/RecipeCategory'
+                imageUrl:
+                    type: [string, 'null']
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+
+        DomainError:
+            description: A business error. The UI reacts to `code`; `message` is for logs and developers.
+            type: object
+            additionalProperties: false
+            required: [statusCode, message, code]
+            properties:
+                statusCode:
+                    type: integer
+                message:
+                    type: string
+                code:
+                    type: string
+        ValidationError:
+            description: NestJS's body for a malformed request. No `code`, the UI shows a generic message.
+            type: object
+            additionalProperties: false
+            required: [statusCode, message, error]
+            properties:
+                statusCode:
+                    const: 400
+                message:
+                    description: One message per broken rule (body), or a single one (query parameter).
+                    oneOf:
+                        - type: string
+                        - type: array
+                          items:
+                              type: string
+                error:
+                    const: Bad Request
+
+    responses:
+        BadRequest:
+            description: Malformed request (missing or invalid field, unknown field, bad query parameter).
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ValidationError'
+                    example:
+                        statusCode: 400
+                        message: ['peopleCount must not be less than 1']
+                        error: Bad Request
+        PlannedMealNotFound:
+            description: No planned meal with this id (or a malformed id).
+            content:
+                application/json:
+                    schema:
+                        allOf:
+                            - $ref: '#/components/schemas/DomainError'
+                            - properties:
+                                  statusCode:
+                                      const: 404
+                                  code:
+                                      const: PLANNED_MEAL_NOT_FOUND
+                    examples:
+                        plannedMealNotFound:
+                            $ref: '#/components/examples/PlannedMealNotFound'
+        RecipeNotFound:
+            description: No recipe with this id (deleted meanwhile, or never existed).
+            content:
+                application/json:
+                    schema:
+                        allOf:
+                            - $ref: '#/components/schemas/DomainError'
+                            - properties:
+                                  statusCode:
+                                      const: 404
+                                  code:
+                                      const: RECIPE_NOT_FOUND
+                    examples:
+                        recipeNotFound:
+                            $ref: '#/components/examples/RecipeNotFound'
+
+    examples:
+        BurgerDinner:
+            summary: A burger recipe for 2, planned for 4 on Monday evening (quantities doubled)
+            value:
+                id: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                date: '2026-11-02'
+                mealType: DINNER
+                peopleCount: 4
+                recipe:
+                    id: 3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f
+                    title: Burger maison
+                    category: meat
+                    imageUrl: null
+                    instructions:
+                        - Émincer les oignons et les faire confire 15 min.
+                        - Cuire les steaks 3 min de chaque côté, ajouter le cheddar.
+                        - Monter les burgers.
+                    ingredients:
+                        - ingredientId: 0b7e1a52-6c3d-4f8e-a1b2-c3d4e5f6a7b8
+                          name: pain à burger
+                          quantity: 4
+                          unit: pièce
+                        - ingredientId: 1c8f2b63-7d4e-4a9f-b2c3-d4e5f6a7b8c9
+                          name: steak haché
+                          quantity: 4
+                          unit: pièce
+                        - ingredientId: 2d903c74-8e5f-4b0a-83d4-e5f6a7b8c9d0
+                          name: cheddar
+                          quantity: 8
+                          unit: tranche
+                        - ingredientId: 3ea14d85-9f60-4c1b-94e5-f6a7b8c9d0e1
+                          name: oignon
+                          quantity: 1.5
+                          unit: pièce
+                        - ingredientId: 4fb25e96-a071-4d2c-a5f6-a7b8c9d0e1f2
+                          name: sel
+                          quantity: null
+                          unit: null
+        PlannedMealNotFound:
+            value:
+                statusCode: 404
+                message: Planned meal 7c9e6679-7425-40de-944b-e07fc1f90ae7 not found
+                code: PLANNED_MEAL_NOT_FOUND
+        RecipeNotFound:
+            value:
+                statusCode: 404
+                message: Recipe 3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f not found
+                code: RECIPE_NOT_FOUND

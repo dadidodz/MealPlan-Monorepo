@@ -1,0 +1,26 @@
+packages:
+  - api
+  - client
+  - shared
+
+# Install scripts allowed (true) or blocked (false), for both layers
+allowBuilds:
+  '@google/genai': false
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  '@swc/core': false
+  cpu-features: false
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+  prisma: true
+  protobufjs: false
+  ssh2: false
+  unrs-resolver: true
+
+# Supply-chain safety: never install a version published less than 24 h ago (1440 minutes)
+minimumReleaseAge: 1440
+
+# Keeps the lockfile a single document (pnpm 12); the pnpm version stays enforced by corepack through `packageManager`
+pmOnFail: ignore

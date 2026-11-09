@@ -1,0 +1,60 @@
+<!-- No card: the form fills the modal -->
+<form class="w-full flex flex-col gap-5" [formRoot]="linkForm">
+  <div class="text-center sm:text-left mb-2">
+    <!-- Smaller title: the modal already has a "Nouvelle recette" heading -->
+    <h3 class="text-lg font-bold text-base-content">Importer depuis les réseaux</h3>
+    <p class="text-base-content/60 text-sm mt-1">
+      Collez le lien d'une vidéo TikTok ou d'un post Instagram pour extraire la recette
+      automatiquement.
+    </p>
+  </div>
+
+  <div class="form-control w-full relative">
+    <!-- input-lg: large on mobile. bg-base-200/50 marks it as an input area -->
+    <input
+      type="url"
+      class="input input-lg bg-base-200/50 border-2 border-base-content/15 focus:border-primary focus:bg-base-100 w-full text-base transition-colors"
+      placeholder="Ex: https://www.instagram.com/..."
+      aria-label="Lien de la vidéo"
+      [formField]="linkForm.url"
+    />
+
+    <!-- Error message, as soon as something is typed (an empty field only disables the button) -->
+    @if (linkForm.url().value().trim()) {
+      @for (error of linkForm.url().errors(); track error.kind) {
+        <div class="mt-2 flex items-center gap-2 text-error text-sm font-medium animate-fade-in">
+          <app-icon name="lucideInfo" size="1.2rem" />
+          {{ error.message }}
+        </div>
+      }
+    }
+  </div>
+
+  <!-- BUTTONS (same width) -->
+  <!-- Mobile: flex-col-reverse (manual below, extraction on top). Desktop: sm:flex-row (side by side) -->
+  <div class="flex flex-col-reverse sm:flex-row gap-3 mt-4 w-full">
+    <!-- flex-1 makes the button take 50% of the width on desktop -->
+    <button
+      type="button"
+      class="btn btn-outline border-2 border-base-content/15 hover:bg-base-200 hover:border-base-content/30 hover:text-base-content w-full sm:flex-1"
+      (click)="onManualClick()"
+      [disabled]="status() === 'loading'"
+    >
+      <app-icon name="lucidePenLine" /> Créer manuellement
+    </button>
+
+    <!-- flex-1 makes the button take 50% of the width on desktop -->
+    <button
+      type="submit"
+      class="btn btn-primary shadow-sm w-full sm:flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+      [disabled]="linkForm().invalid() || status() === 'loading'"
+    >
+      @if (status() === 'loading') {
+        <span class="loading loading-spinner"></span>
+        Extraction...
+      } @else {
+        <app-icon name="lucideWand2" /> Extraire la recette
+      }
+    </button>
+  </div>
+</form>

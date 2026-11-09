@@ -1,0 +1,178 @@
+<div class="max-w-5xl mx-auto w-full pb-4">
+  <div class="flex justify-between items-center mb-4">
+    <!-- Floating button style that stands out from the background -->
+    <a
+      routerLink="/recipes"
+      class="btn btn-sm sm:btn-md bg-base-100 border-2 border-base-content/15 shadow-sm hover:bg-base-200 hover:border-base-content/30 transition-all"
+    >
+      <app-icon name="lucideArrowLeft" size="1.2rem" />
+      <span class="hidden sm:inline">Retour au carnet</span>
+      <span class="sm:hidden">Retour</span>
+    </a>
+
+    @if (recipe.hasValue()) {
+      <a
+        routerLink="edit"
+        class="btn btn-sm sm:btn-md btn-primary btn-outline bg-base-100 border-2 shadow-sm transition-all"
+      >
+        <app-icon name="lucidePencil" size="1.2rem" />
+        <span class="hidden sm:inline ml-1">Éditer la recette</span>
+        <span class="sm:hidden ml-1">Éditer</span>
+      </a>
+    }
+  </div>
+
+  @if (recipe.error(); as error) {
+    <app-error-state [error]="error" (retry)="recipe.reload()" />
+  } @else if (recipe.hasValue()) {
+    @let currentRecipe = recipe.value();
+    <!-- RECIPE HEADER (surface 1) -->
+    <!-- One large bg-base-100 card groups the title and the info -->
+    <header
+      class="bg-base-100 rounded-3xl border-2 border-base-content/15 shadow-md p-6 md:p-8 mb-6"
+    >
+      <h1 class="text-3xl md:text-4xl font-black text-base-content mb-4 leading-tight">
+        {{ currentRecipe.title }}
+      </h1>
+
+      @if (currentRecipe.description) {
+        <p class="text-base-content/70 text-lg mb-6 leading-relaxed">
+          {{ currentRecipe.description }}
+        </p>
+      }
+
+      <div class="flex flex-wrap gap-3">
+        <!-- Pastel pill badges, as on the cards -->
+        <div
+          class="badge badge-primary badge-outline bg-primary/10 border-primary/30 p-4 font-bold"
+        >
+          <app-icon name="lucideUsers" size="1.2rem" class="mr-2" />
+          {{ currentRecipe.basePortions }} portions
+        </div>
+
+        @if (currentRecipe.sourceUrl) {
+          <a
+            [href]="currentRecipe.sourceUrl"
+            target="_blank"
+            class="badge badge-secondary badge-outline bg-secondary/10 border-secondary/30 p-4 font-bold hover:bg-secondary/20 transition-colors"
+          >
+            Source originale
+            <app-icon name="lucideExternalLink" size="1.2rem" class="ml-2" />
+          </a>
+        }
+      </div>
+    </header>
+
+    <!-- INGREDIENTS / PREPARATION GRID -->
+    <!-- lg:grid-cols-3 keeps 1 column on tablet (md), 3 on large screens -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
+      <!-- INGREDIENTS (surface 2) -->
+      <section
+        class="lg:col-span-1 bg-base-100 rounded-3xl border-2 border-base-content/15 shadow-md p-6 h-fit"
+      >
+        <h2
+          class="text-xl font-bold flex items-center gap-3 mb-4 border-b-2 border-base-content/15 pb-4"
+        >
+          <div class="p-2 bg-primary/15 text-primary rounded-xl">
+            <app-icon name="lucideListChecks" size="1.5rem" />
+          </div>
+          Ingrédients
+        </h2>
+
+        <fieldset class="join w-full mb-4" aria-label="Ordre des ingrédients">
+          <button
+            type="button"
+            class="btn btn-sm join-item flex-1"
+            [class.btn-primary]="ingredientOrder() === 'recipe'"
+            [attr.aria-pressed]="ingredientOrder() === 'recipe'"
+            (click)="ingredientOrder.set('recipe')"
+          >
+            Ordre de la recette
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm join-item flex-1"
+            [class.btn-primary]="ingredientOrder() === 'alphabetical'"
+            [attr.aria-pressed]="ingredientOrder() === 'alphabetical'"
+            (click)="ingredientOrder.set('alphabetical')"
+          >
+            A→Z
+          </button>
+        </fieldset>
+
+        <!-- gap-2 tightens the items -->
+        <ul class="flex flex-col gap-2">
+          @for (ingredient of ingredients(); track ingredient.ingredientId) {
+            <!-- py-2 px-3 and rounded-xl for a slimmer bubble -->
+            <li
+              class="flex justify-between items-center bg-base-200/50 py-2 px-3 rounded-xl border border-base-content/5 gap-2"
+            >
+              <!-- flex-1, min-w-0 and break-words stop long text from breaking the layout -->
+              <span
+                class="font-bold text-base-content pl-1 inline-block first-letter:uppercase flex-1 min-w-0 break-words"
+              >
+                {{ ingredient.name }}
+              </span>
+
+              <!-- flex-none protects the quantity label -->
+              <span
+                class="text-sm font-bold text-base-content/80 bg-base-100 px-3 py-1 rounded-lg border border-base-content/10 shadow-sm whitespace-nowrap flex-none"
+              >
+                @if (ingredient.quantity) {
+                  {{ ingredient.quantity }} {{ ingredient.unit || '' }}
+                } @else {
+                  -
+                }
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <!-- PREPARATION (surface 3) -->
+      <section
+        class="lg:col-span-2 bg-base-100 rounded-3xl border-2 border-base-content/15 shadow-md p-6 md:p-8 h-fit"
+      >
+        <h2
+          class="text-xl font-bold flex items-center gap-3 mb-6 border-b-2 border-base-content/15 pb-4"
+        >
+          <div class="p-2 bg-secondary/15 text-secondary rounded-xl">
+            <app-icon name="lucideChefHat" size="1.5rem" />
+          </div>
+          Préparation
+        </h2>
+
+        <ol class="flex flex-col gap-8 mt-4">
+          @for (step of currentRecipe.instructions; track step; let i = $index) {
+            <!-- "group" makes the number react when the row is hovered -->
+            <li class="flex gap-4 items-start group cursor-default">
+              <!-- Step number: bold, iOS style -->
+              <div
+                class="flex-none w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-base-200 border-2 border-base-content/15 flex items-center justify-center font-black text-lg sm:text-xl text-base-content/50 group-hover:bg-primary group-hover:text-primary-content group-hover:border-primary transition-all shadow-sm mt-0.5"
+              >
+                {{ i + 1 }}
+              </div>
+
+              <p class="text-base-content leading-relaxed md:text-lg pt-1 sm:pt-2">
+                {{ step }}
+              </p>
+            </li>
+          }
+        </ol>
+      </section>
+    </div>
+  } @else {
+    <!-- LOADING SKELETONS -->
+    <div class="flex flex-col gap-6 animate-pulse">
+      <div class="h-48 bg-base-300 rounded-3xl w-full border-2 border-base-content/5"></div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div
+          class="h-96 bg-base-300 rounded-3xl lg:col-span-1 border-2 border-base-content/5"
+        ></div>
+        <div
+          class="h-96 bg-base-300 rounded-3xl lg:col-span-2 border-2 border-base-content/5"
+        ></div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,9 @@
+{
+  "name": "@mealplan/shared",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts"
+    }
+  }
+}

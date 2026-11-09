@@ -1,0 +1,87 @@
+<!-- 1. MODAL-BOTTOM ON MOBILE, MIDDLE ON DESKTOP -->
+<dialog
+  class="modal modal-bottom sm:modal-middle transition-all"
+  [class.modal-open]="modalStore.isImportOpen()"
+>
+  <!-- 2. CONTAINER: max-h-[85vh] keeps the editor from overflowing the screen -->
+  <div
+    class="modal-box w-full sm:w-11/12 max-w-4xl max-h-[85vh] p-4 sm:p-6 flex flex-col bg-base-100 border-t-2 sm:border-2 border-base-content/15 shadow-2xl"
+  >
+    <form method="dialog">
+      <button
+        type="submit"
+        class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4"
+        (click)="closeModal()"
+      >
+        <app-icon name="lucideX" size="1.2rem" />
+      </button>
+    </form>
+
+    <h3 class="text-xl sm:text-2xl font-bold flex items-center gap-3 mb-2 sm:mb-6">
+      <span class="text-primary"><app-icon name="lucideChefHat" size="1.8rem" /></span>
+      Nouvelle recette
+    </h3>
+
+    <!-- 3. CONTENT AREA with min-h-0: required for the inner scroll to work in Flexbox -->
+    <div class="flex-1 min-h-0 flex flex-col">
+      @if (status() === 'idle' || status() === 'loading' || status() === 'error') {
+        <!-- py-8 adds breathing room without forcing a large min height -->
+        <div class="flex flex-col justify-center py-6 sm:py-8">
+          <app-extractor-form
+            class="w-full max-w-2xl mx-auto"
+            (extractRequested)="processExtraction($event)"
+            (manualRequested)="startManualCreation()"
+            [status]="status()"
+          />
+        </div>
+      } @else if (status() === 'already_exists') {
+        <div
+          class="flex-1 flex flex-col items-center justify-center gap-3 py-6 sm:py-8 text-center"
+        >
+          <app-icon name="lucideInfo" class="text-info" size="3.5rem" />
+          <h4 class="text-xl sm:text-2xl font-bold">Lien déjà utilisé</h4>
+          <p class="text-base-content/70">
+            Une recette issue de ce lien existe déjà dans votre carnet.
+          </p>
+
+          <div class="flex flex-wrap justify-center gap-2 sm:gap-4 mt-6 w-full">
+            <a
+              [routerLink]="['/recipes', existingRecipeId()]"
+              class="btn btn-outline flex-1 sm:flex-none"
+              (click)="closeModal()"
+            >
+              Consulter
+            </a>
+            <button
+              type="button"
+              class="btn btn-primary flex-1 sm:flex-none"
+              (click)="fetchExistingExtraction()"
+            >
+              Créer quand même
+            </button>
+          </div>
+          <!-- Cancel button below, more discreet -->
+          <button type="button" class="btn btn-ghost btn-sm mt-2" (click)="status.set('idle')">
+            Annuler
+          </button>
+        </div>
+      } @else if (status() === 'success') {
+        <!-- 4. SCROLL HAPPENS HERE. pr-2 keeps the scrollbar off the text -->
+        <div class="flex-1 overflow-y-auto pr-2 pb-4 mt-4">
+          <form [formRoot]="recipeForm">
+            <app-recipe-editor
+              [recipeForm]="recipeForm"
+              [extractStatus]="status()"
+              (backRequested)="goBackToExtractor()"
+            />
+          </form>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- 5. BACKDROP: light background blur -->
+  <form method="dialog" class="modal-backdrop bg-base-300/40 backdrop-blur-[2px]">
+    <button type="submit" (click)="closeModal()">close</button>
+  </form>
+</dialog>

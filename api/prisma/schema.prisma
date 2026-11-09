@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Recipe {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  basePortions Int
+  instructions String[] // Ordered steps (e.g. ["Cut the tomatoes", "Cook 10 min"])
+
+  category String  @default("other") // meat, fish, vegetarian, dessert, breakfast, other (RECIPE_CATEGORIES)
+  imageUrl String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz()
+  updatedAt DateTime @updatedAt @db.Timestamptz()
+
+  // Relations: a recipe has many ingredients and can be planned many times
+  ingredients  RecipeIngredient[]
+  plannerSlots PlannerSlot[]
+
+  aiExtractionId String?
+  aiExtraction   RecipeAiExtraction? @relation(fields: [aiExtractionId], references: [id])
+}
+
+model RecipeAiExtraction {
+  id            String   @id @default(uuid())
+  sourceUrl     String   @unique
+  extractedData Json? // Null while the status is IN_PROGRESS or ERROR
+  status        String // "IN_PROGRESS", "SUCCESS", "ERROR"
+  aiModel       String? // e.g. "gemini-1.5-flash"
+  promptVersion String? // e.g. "v1.0"
+  extractedAt   DateTime @default(now()) @db.Timestamptz()
+
+  // Back relation: one extraction can serve several recipes (multi-user)
+  recipes Recipe[]
+}
+
+model Ingredient {
+  id   String @id @default(uuid())
+  name String
+
+  code     String  @unique
+  category String?
+
+  recipeIngredients RecipeIngredient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Join table: links a recipe to an ingredient with its own quantity
+model RecipeIngredient {
+  id                      String  @id @default(uuid())
+  recipeId                String
+  ingredientId            String
+  quantity                Float? // e.g. 200
+  unit                    String? // e.g. "g", "ml", "pièce"
+  isIgnoredInShoppingList Boolean @default(false)
+  position                Int     @default(0) // index in the recipe's ingredient list
+
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+}
+
+model PlannerSlot {
+  id       String   @id @default(uuid())
+  date     DateTime @db.Timestamptz() // Meal date
+  mealType String // "LUNCH" or "DINNER"
+  recipeId String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}

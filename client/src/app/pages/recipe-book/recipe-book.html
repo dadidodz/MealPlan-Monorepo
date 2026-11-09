@@ -1,0 +1,80 @@
+<!-- No p-8: app.html already pads the page -->
+<div class="max-w-5xl mx-auto h-full flex flex-col">
+  <!-- HEADER: compact, close to the app header -->
+  <div
+    class="flex justify-between items-center mb-8 bg-base-100 p-4 md:p-6 pt-6 md:pt-8 rounded-b-3xl border-2 border-t-0 border-base-content/15 shadow-md -mt-4 md:-mt-8 mx-auto w-full relative z-10"
+  >
+    <div class="flex items-center gap-3">
+      <!-- Icon with more contrast (text-primary) -->
+      <app-icon name="lucideBook" size="1.8rem" class="text-primary" />
+
+      <h1
+        class="text-2xl md:text-3xl font-bold text-base-content tracking-tight flex items-center gap-3"
+      >
+        Carnet de recettes
+
+        @if (recipes()?.length) {
+          <!-- Badge also uses border-2 for consistency -->
+          <span
+            class="badge badge-primary badge-outline badge-sm md:badge-md font-bold opacity-80 mt-1 border-2"
+          >
+            {{ recipes()?.length }}
+          </span>
+        }
+      </h1>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-primary hidden md:flex shadow-sm"
+      (click)="modalStore.openImport()"
+    >
+      + Nouvelle Recette
+    </button>
+  </div>
+
+  <!-- No top progress bar: the spinner at the bottom shows every load (next page or merge of a new recipe) -->
+  @if (recipes(); as list) {
+    <!-- gap-3 on mobile (solid list look), gap-6 on desktop (airy) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+      @for (recipe of list; track recipe.id) {
+        <app-recipe-card
+          [recipe]="recipe"
+          (cardClicked)="goToRecipe($event)"
+          (deleteRequested)="deleteRecipe($event)"
+        />
+      } @empty {
+        <app-empty-state
+          class="col-span-full"
+          message="Votre carnet est vide. Importez votre première recette pour le remplir !"
+        >
+          <button type="button" class="btn btn-primary shadow-sm" (click)="modalStore.openImport()">
+            Importer une recette
+          </button>
+        </app-empty-state>
+      }
+    </div>
+  } @else if (!pageResource.error()) {
+    <!-- First load: skeleton height matches the cards (130px) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+      <div class="skeleton h-[130px] w-full rounded-xl"></div>
+      <div class="skeleton h-[130px] w-full rounded-xl"></div>
+      <div class="skeleton h-[130px] w-full rounded-xl hidden md:block"></div>
+    </div>
+  }
+
+  @if (pageResource.error(); as error) {
+    <app-error-state class="mt-4" [error]="error" (retry)="pageResource.reload()" />
+  }
+
+  <!-- INFINITE SCROLL TRIGGER -->
+  <div #scrollTrigger class="h-1 w-full mt-2"></div>
+
+  <div class="flex justify-center pb-8 mt-4 h-12">
+    @if (pageResource.isLoading() && recipes()?.length) {
+      <span class="loading loading-spinner loading-md text-primary"></span>
+    } @else if (pageResource.hasValue() && !hasMore() && recipes()?.length) {
+      <p class="text-base-content/40 text-xs uppercase font-bold tracking-wider">Fin du carnet</p>
+    }
+  </div>
+</div>

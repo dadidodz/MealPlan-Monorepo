@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+@plugin "daisyui" {
+    themes:
+        light, dark, cupcake, bumblebee, emerald, corporate, synthwave, retro, cyberpunk, valentine,
+        halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe, black, luxury, dracula,
+        cmyk, autumn, business, acid, lemonade, night, coffee, winter, dim, nord, sunset;
+}
+
+/* Entrance animations for elements that appear (menus, icon picker, messages, FAB): `animate-fade-in`,
+   `animate-fade-in-down` (Tailwind generates the classes from these theme variables) */
+@theme {
+    --animate-fade-in: fade-in 200ms ease-out;
+    --animate-fade-in-down: fade-in-down 200ms ease-out;
+
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @keyframes fade-in-down {
+        from {
+            opacity: 0;
+            transform: translateY(-0.5rem);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-fade-in-down {
+        animation: none;
+    }
+}

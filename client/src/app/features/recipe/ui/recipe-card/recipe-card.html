@@ -1,0 +1,88 @@
+<!-- Compact height (e.g. h-[120px] or h-32). "relative": the title button stretches over the whole card -->
+<div
+  class="relative flex bg-base-100 shadow-md border-2 border-base-content/15 rounded-xl overflow-hidden transition-all hover:shadow-lg hover:border-primary/50 cursor-pointer h-[120px] group"
+>
+  <!-- IMAGE -->
+  <div
+    [class]="
+      'w-32 flex-none relative border-r border-base-content/15 flex items-center justify-center transition-colors ' +
+      placeholderStyle()
+    "
+  >
+    <app-icon [name]="iconName()" size="2.5rem" />
+  </div>
+
+  <div class="p-3 flex flex-col flex-1 min-w-0">
+    <!-- Not "relative": the title button's ::after must size itself on the card, not on this row -->
+    <div class="flex justify-between items-start gap-2">
+      <!-- TITLE: top priority -->
+      <!-- line-clamp-3 guards against very long titles -->
+      <h2
+        class="text-base flex-1 font-bold text-base-content leading-tight group-hover:text-primary transition-colors line-clamp-3"
+      >
+        <!-- Stretched button: its ::after covers the card, so the whole card opens the recipe, with the keyboard
+             too (a <button> around the card can't hold the menu button) -->
+        <button
+          type="button"
+          class="text-left cursor-pointer outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-primary"
+          (click)="onCardClick()"
+        >
+          {{ recipe().title }}
+        </button>
+      </h2>
+
+      <!-- MENU. z-10 on the button, not on this wrapper: a z-index here would make a stacking context and trap
+           the backdrop (z-40) and the menu (z-50) under the next cards' buttons -->
+      <div class="relative flex-none">
+        <button
+          type="button"
+          aria-label="Actions de la recette"
+          class="relative z-10 btn btn-sm btn-ghost btn-circle -mt-1 -mr-2 text-base-content/60 hover:text-base-content hover:bg-base-200"
+          (click)="toggleMenu($event)"
+        >
+          <app-icon name="lucideMoreVertical" size="1.2rem" />
+        </button>
+
+        @if (isMenuOpen()) {
+          <!-- Backdrop: a click or a scroll outside closes the menu -->
+          <button
+            type="button"
+            class="fixed inset-0 z-40 cursor-default"
+            aria-label="Fermer le menu"
+            (click)="closeMenu($event)"
+            (wheel)="closeMenu($event)"
+            (touchmove)="closeMenu($event)"
+          ></button>
+
+          <ul
+            class="absolute right-0 top-8 menu p-2 shadow-xl bg-base-100 rounded-box w-44 border-2 border-base-content/15 z-50 animate-fade-in-down"
+          >
+            <li>
+              <button
+                type="button"
+                class="text-error hover:bg-error/10"
+                (click)="onDeleteAction($event)"
+              >
+                <app-icon name="lucideTrash2" /> Supprimer
+              </button>
+            </li>
+          </ul>
+        }
+      </div>
+    </div>
+
+    <!-- TAGS: sit at the bottom naturally -->
+    <div class="mt-auto pt-2 flex gap-2">
+      <span
+        class="badge badge-sm badge-secondary badge-outline bg-secondary/10 border-secondary/30 font-medium"
+      >
+        15 min
+      </span>
+      <span
+        class="badge badge-sm badge-accent badge-outline bg-accent/10 border-accent/30 font-medium"
+      >
+        Dessert
+      </span>
+    </div>
+  </div>
+</div>
