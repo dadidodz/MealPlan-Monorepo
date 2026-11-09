@@ -1,0 +1,35 @@
+<div class="max-w-5xl mx-auto w-full pb-24">
+  <h1 class="text-2xl md:text-3xl font-bold text-base-content tracking-tight mb-4">Planning</h1>
+
+  <div class="flex justify-between items-center mb-4">
+    <a
+      routerLink="/planner"
+      [queryParams]="{ week: previousWeek() }"
+      class="btn btn-circle btn-ghost"
+      aria-label="Semaine précédente"
+    >
+      <app-icon name="lucideChevronLeft" size="1.2rem" />
+    </a>
+    <p class="font-bold text-base-content">{{ rangeLabel() }}</p>
+    <a
+      routerLink="/planner"
+      [queryParams]="{ week: nextWeek() }"
+      class="btn btn-circle btn-ghost"
+      aria-label="Semaine suivante"
+    >
+      <app-icon name="lucideChevronRight" size="1.2rem" />
+    </a>
+  </div>
+
+  @if (meals.error(); as error) {
+    <app-error-state [error]="error" (retry)="meals.reload()" />
+  } @else if (meals.hasValue()) {
+    <app-week-view [monday]="monday()" [meals]="meals.value()" />
+  } @else {
+    <div class="flex flex-col gap-3">
+      @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+        <div class="skeleton h-32 w-full rounded-2xl"></div>
+      }
+    </div>
+  }
+</div>

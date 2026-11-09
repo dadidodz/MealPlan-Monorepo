@@ -7,9 +7,10 @@
     class="hidden md:flex flex-none w-64 flex-col bg-base-100 border-r-2 border-base-content/15 shadow-lg z-50"
   >
     <div class="p-6">
-      <h1 class="text-2xl font-black text-primary flex items-center gap-3">
+      <!-- Not a heading: each page has its own h1 -->
+      <p class="text-2xl font-black text-primary flex items-center gap-3">
         <app-icon name="lucideChefHat" size="1.5rem" /> MealPlan
-      </h1>
+      </p>
     </div>
 
     <nav class="flex-1 px-4 space-y-2" aria-label="Navigation principale">
@@ -21,9 +22,9 @@
         <app-icon name="lucideBook" size="1.2rem" /> Carnet
       </a>
       <a
-        routerLink="/planning"
+        routerLink="/planner"
         routerLinkActive="active bg-primary text-primary-content"
-        class="btn btn-ghost justify-start w-full text-lg font-normal opacity-50 cursor-not-allowed"
+        class="btn btn-ghost justify-start w-full text-lg font-normal"
       >
         <app-icon name="lucideCalendarDays" size="1.2rem" /> Planning
       </a>
@@ -63,9 +64,9 @@
       class="md:hidden flex-none navbar bg-base-100 border-b-2 border-base-content/15 shadow-md z-40"
     >
       <div class="flex-1">
-        <h1 class="text-xl font-black text-primary px-2 flex items-center gap-2">
+        <p class="text-xl font-black text-primary px-2 flex items-center gap-2">
           <app-icon name="lucideChefHat" /> MealPlan
-        </h1>
+        </p>
       </div>
 
       <div class="flex-none">
@@ -145,9 +146,9 @@
       </a>
 
       <a
-        routerLink="/planning"
+        routerLink="/planner"
         routerLinkActive="active text-primary"
-        class="flex flex-col items-center justify-center flex-1 py-3 hover:bg-base-200 transition-colors opacity-50 [&.active]:opacity-100 [&.active]:text-primary cursor-not-allowed"
+        class="flex flex-col items-center justify-center flex-1 py-3 hover:bg-base-200 transition-colors opacity-50 [&.active]:opacity-100 [&.active]:text-primary"
       >
         <app-icon name="lucideCalendarDays" size="1.4rem" />
         <span class="text-[10px] font-medium mt-1">Planning</span>

@@ -15,4 +15,7 @@ export const ApiRoutes = {
         BASE: `${BASE_URL}/ingredients`,
         SEARCH: `${BASE_URL}/ingredients/search`,
     },
+    PLANNED_MEALS: {
+        BASE: `${BASE_URL}/planned-meals`,
+    },
 } as const;

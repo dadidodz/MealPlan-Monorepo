@@ -47,13 +47,14 @@ describe('App', () => {
     const buttonWithText = (text: string): HTMLButtonElement | undefined =>
         Array.from(host().querySelectorAll('button')).find((b) => b.textContent?.includes(text));
 
-    it('shows the app name', () => {
-        expect(host().querySelector('h1')?.textContent).toContain('MealPlan');
+    it('shows the app name without taking the h1 of the page', () => {
+        expect(host().textContent).toContain('MealPlan');
+        expect(host().querySelector('h1')).toBeNull();
     });
 
     it('links to the recipe book, planning and shopping list', () => {
         const hrefs = Array.from(host().querySelectorAll('a[href]'), (a) => a.getAttribute('href'));
-        expect(hrefs).toEqual(expect.arrayContaining(['/recipes', '/planning', '/courses']));
+        expect(hrefs).toEqual(expect.arrayContaining(['/recipes', '/planner', '/courses']));
     });
 
     it('opens the import modal from the button and hides the button while it is open', async () => {

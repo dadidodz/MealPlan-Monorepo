@@ -29,10 +29,17 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/recipe-edit/recipe-edit').then((m) => m.RecipeEdit),
     },
 
-    // 3. Dev only (/ui-kit): empty in production builds
+    // 3. The week's planned meals
+    {
+        path: 'planner',
+        title: 'Planning - MealPlan',
+        loadComponent: () => import('./pages/planner/planner').then((m) => m.Planner),
+    },
+
+    // 4. Dev only (/ui-kit): empty in production builds
     ...DEV_ROUTES,
 
-    // 4. Fallback (wildcard): any unknown URL redirects to the recipe book
+    // 5. Fallback (wildcard): any unknown URL redirects to the recipe book
     {
         path: '**',
         redirectTo: 'recipes',

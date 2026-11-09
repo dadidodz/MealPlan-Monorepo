@@ -1,0 +1,30 @@
+<ol class="flex flex-col gap-3">
+  @for (day of days(); track day.date) {
+    <li class="bg-base-100 rounded-2xl border-2 border-base-content/15 shadow-sm p-4">
+      <h2 class="font-bold text-base-content first-letter:uppercase mb-2">{{ day.label }}</h2>
+
+      <dl class="flex flex-col gap-2">
+        @for (slot of day.slots; track slot.mealType) {
+          <div class="flex items-center gap-3 min-h-8">
+            <dt class="flex-none w-10 text-sm font-medium text-base-content/70">
+              {{ slot.label }}
+            </dt>
+            <dd class="flex-1 min-w-0">
+              @if (slot.meal; as meal) {
+                <span class="font-medium text-base-content break-words">
+                  {{ meal.recipe.title }}
+                </span>
+              } @else {
+                <!-- Disabled until planning a meal exists (story #13) -->
+                <button type="button" class="btn btn-sm btn-ghost" disabled>
+                  <app-icon name="lucidePlus" size="1rem" />
+                  Planifier
+                </button>
+              }
+            </dd>
+          </div>
+        }
+      </dl>
+    </li>
+  }
+</ol>
