@@ -137,5 +137,81 @@ describe('API contract (openapi.yaml)', () => {
 
             expect(contractErrors('get', '/recipes', response)).toEqual([]);
         });
+
+        describe('GET /planned-meals', () => {
+            const week = { from: '2026-11-02', to: '2026-11-08' };
+
+            it('matches the contract, with the meals of the range in order', async () => {
+                const recipe = aRecipe();
+                await recipes.save(recipe);
+                const planned = (date: string, mealType: 'LUNCH' | 'DINNER'): Promise<unknown> =>
+                    app.get(PrismaService).plannedMeal.create({
+                        data: {
+                            date: new Date(`${date}T00:00:00Z`),
+                            mealType,
+                            peopleCount: 4,
+                            recipeId: recipe.id,
+                        },
+                    });
+                await planned('2026-11-03', 'DINNER');
+                await planned('2026-11-03', 'LUNCH');
+                await planned('2026-11-09', 'LUNCH');
+
+                const response = await request(app.getHttpServer())
+                    .get('/planned-meals')
+                    .query(week)
+                    .expect(200);
+                const body: unknown = response.body;
+
+                expect(contractErrors('get', '/planned-meals', response)).toEqual([]);
+                expect(body).toMatchObject([
+                    {
+                        date: '2026-11-03',
+                        mealType: 'LUNCH',
+                        peopleCount: 4,
+                        recipe: { id: recipe.id, title: recipe.title },
+                    },
+                    { date: '2026-11-03', mealType: 'DINNER' },
+                ]);
+            });
+
+            it('matches the contract for a week with no meal', async () => {
+                const response = await request(app.getHttpServer())
+                    .get('/planned-meals')
+                    .query(week)
+                    .expect(200);
+                const body: unknown = response.body;
+
+                expect(contractErrors('get', '/planned-meals', response)).toEqual([]);
+                expect(body).toEqual([]);
+            });
+
+            it('answers 422 INVALID_DATE_RANGE in the contract format when from is after to', async () => {
+                const response = await request(app.getHttpServer())
+                    .get('/planned-meals')
+                    .query({ from: week.to, to: week.from })
+                    .expect(422);
+
+                expect(contractErrors('get', '/planned-meals', response)).toEqual([]);
+            });
+
+            it.each([
+                'to=2026-11-08',
+                'from=2026-11-02',
+                'from=2026-02-30&to=2026-11-08',
+                'from=2026-11-02&to=2026-13-01',
+                'from=2026-11-02T10:00:00&to=2026-11-08',
+                'from=2026-W45-1&to=2026-11-08',
+                'from=0000-01-01&to=2026-11-08',
+                'from=2026-11-02&to=2026-11-08&foo=1',
+                `from=${encodeURIComponent("2026-11-02' OR '1'='1")}&to=2026-11-08`,
+            ])('GET /planned-meals?%s returns 400 in the contract format', async (query) => {
+                const response = await request(app.getHttpServer())
+                    .get(`/planned-meals?${query}`)
+                    .expect(400);
+
+                expect(contractErrors('get', '/planned-meals', response)).toEqual([]);
+            });
+        });
     });
 });

@@ -58,6 +58,8 @@ src/
       domain/  application/  infrastructure/  presentation/  recipe.module.ts
     ingredient/                   ingredient search (autocomplete)
       domain/  application/  infrastructure/  presentation/  ingredient.module.ts
+    planning/                     the meal planner (reading the planned meals so far)
+      domain/  application/  infrastructure/  presentation/  planning.module.ts
 prisma/
   schema.prisma                   database tables
   migrations/                     one SQL folder per schema change (applied in order)
@@ -214,12 +216,13 @@ Details worth knowing:
 | `GET /api/recipes/stream/:jobId` | `streamExtraction` (SSE) | `ExtractRecipeDraftUseCase.getJobStream` | one success/error message |
 | `GET /api/recipes/extract/cached?url` | `getCachedExtraction` | `GetCachedExtractionUseCase` | the cached draft |
 | `GET /api/ingredients/search?q` | `IngredientController.search` | `SearchIngredientsUseCase` | matching ingredients (2+ characters) |
+| `GET /api/planned-meals?from&to` | `PlannedMealController.list` | `ListPlannedMealsUseCase` | planned meals of the range, by date then lunch first |
 
 ## 8. Persistence
 
 - **Schema** (`prisma/schema.prisma`): `Recipe`, `RecipeIngredient` (join table with quantity, unit, `position`,
   `isIgnoredInShoppingList`), `Ingredient` (unique `code`), `RecipeAiExtraction` (one per source link),
-  `PlannerSlot` (created for the planner, no code uses it yet).
+  `PlannedMeal` (a recipe on a calendar day, lunch or dinner; one per slot).
 - **Mappers** (`recipe.mapper.ts`) are the only place where Prisma rows and entities meet: `toDomain` rebuilds an
   entity with `Recipe.restore`, `toPersistence` turns it back into Prisma data. They also convert `Date` (Prisma)
   ↔ `Temporal.Instant` (domain): `Date` never goes further.
@@ -269,5 +272,5 @@ the module → call it from the controller with a command built from the DTO →
 ## 12. Known gaps
 
 - Extraction jobs are in memory: a restart during an extraction loses it (the user starts again).
-- `PlannerSlot` exists in the schema, unused: planning and shopping list are not built yet
+- The planner only reads so far, and the shopping list is not built yet
   (see [../SPECIFICATIONS.md](../SPECIFICATIONS.md)).
