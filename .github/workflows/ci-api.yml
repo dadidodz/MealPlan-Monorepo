@@ -62,3 +62,6 @@ jobs:
 
             - name: End-to-end and contract tests
               run: pnpm test:e2e
+              env:
+                  # The e2e tests boot the whole app, whose Gemini adapter needs a key at startup; no test calls Gemini
+                  GEMINI_API_KEY: not-used-in-tests
