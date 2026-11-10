@@ -26,7 +26,7 @@ model Recipe {
 
   // Relations: a recipe has many ingredients and can be planned many times
   ingredients  RecipeIngredient[]
-  plannerSlots PlannerSlot[]
+  plannedMeals PlannedMeal[]
 
   aiExtractionId String?
   aiExtraction   RecipeAiExtraction? @relation(fields: [aiExtractionId], references: [id])
@@ -72,11 +72,21 @@ model RecipeIngredient {
   ingredient Ingredient @relation(fields: [ingredientId], references: [id])
 }
 
-model PlannerSlot {
-  id       String   @id @default(uuid())
-  date     DateTime @db.Timestamptz() // Meal date
-  mealType String // "LUNCH" or "DINNER"
-  recipeId String
+// Declaration order is the sort order: lunch before dinner
+enum MealType {
+  LUNCH
+  DINNER
+}
+
+model PlannedMeal {
+  id          String   @id @default(uuid())
+  date        DateTime @db.Date // Calendar day, no time or time zone
+  mealType    MealType
+  peopleCount Int
+  recipeId    String
 
   recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  // One meal per slot; its index also serves the date range queries
+  @@unique([date, mealType])
 }

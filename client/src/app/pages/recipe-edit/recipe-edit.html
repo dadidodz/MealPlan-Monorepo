@@ -1,4 +1,7 @@
 <div class="max-w-3xl mx-auto w-full p-4 md:p-8">
+  <!-- Screen readers only: the editor, shared with the import modal, starts at h2 -->
+  <h1 class="sr-only">Modifier la recette</h1>
+
   @if (recipe.error(); as error) {
     <app-error-state [error]="error" (retry)="recipe.reload()" />
   } @else if (recipe.hasValue()) {

@@ -57,10 +57,15 @@ src/
       ingredient/
         data-access/ingredient-api.ts  ingredient search (autocomplete)
         model/                     Ingredient type
+      planning/
+        data-access/planned-meal-api.ts  the planned meals between two days
+        model/                     ISO weeks and the days of a week (week.ts); API types from @mealplan/shared
+        ui/week-view/              a week as a vertical list of days, lunch and dinner slots
     pages/
       recipe-book/                 /recipes
       recipe-detail/               /recipes/:id
       recipe-edit/                 /recipes/:id/edit
+      planner/                     /planner?week=2026-W45
       import-recipe/               the import modal (not a route: shown by the shell)
       ui-kit/                      /ui-kit, showcase of shared components (dev only)
     shared/ui/
@@ -76,7 +81,7 @@ src/
 ## 3. Startup and the shell
 
 1. `main.ts` boots `App` with `app.config.ts`: the router (with `withComponentInputBinding()`, so a route parameter
-   like `:id` arrives as the page's `id` input) and `HttpClient`.
+   like `:id` or a query parameter like `?week=` arrives as an input of the page) and `HttpClient`.
 2. `App` (`app.ts` / `app.html`) draws the shell around the routed page:
    - desktop: a sidebar (navigation + theme select); phone: a header with a theme menu and a bottom nav;
    - `<router-outlet>`: where pages appear;
@@ -86,7 +91,7 @@ src/
      initial bundle;
    - the toast area, fed by `ToastStore`.
 3. Routes (`app.routes.ts`): `/` → `/recipes`; `/recipes` (book); `/recipes/:id` (detail); `/recipes/:id/edit`;
-   `/ui-kit` (dev only); anything else → `/recipes`. Each page is lazy-loaded (`loadComponent`).
+   `/planner` (week); `/ui-kit` (dev only); anything else → `/recipes`. Each page is lazy-loaded (`loadComponent`).
 
 The app is **zoneless**: the screen updates when a **signal** it reads changes, not after any event. So all state
 is in signals; a plain field changed in a callback would not show.
@@ -113,7 +118,7 @@ new recipe without the two components knowing each other.
 - Every URL comes from `core/config/api.routes.ts` and starts with `/api`. In dev, `ng serve` forwards `/api` to
   `localhost:3000` (`proxy.conf.json`); in production the server's reverse proxy does. So the code never contains a
   host name.
-- The three data-access services:
+- The four data-access services:
 
 | Service | Method | Kind | Endpoint |
 |---|---|---|---|
@@ -124,6 +129,7 @@ new recipe without the two components knowing each other.
 | `ExtractorApi` | `extractFromUrl(url)` | Observable | `POST /api/recipes/extract`, then the SSE stream |
 | | `getCachedExtraction(url)` | Observable | `GET /api/recipes/extract/cached?url` |
 | `IngredientApi` | `searchIngredients(term)` | Observable | `GET /api/ingredients/search?q` |
+| `PlannedMealApi` | `listBetween(from, to)` | resource | `GET /api/planned-meals?from&to` |
 
 - Types in `features/*/model/*.type.ts` mirror the API's response DTOs; `RecipePayload` is the save body.
 
@@ -163,6 +169,16 @@ failed **write** shows a toast and keeps what the user typed.
 - Loads the recipe like the detail page; the **page owns the form** (see §7) and the editor only renders it.
 - Saving: `update()` → toast "Modifications enregistrées !" → back to the recipe. On failure: an error toast, the
   values stay, and saving again works.
+
+### Planner — `pages/planner/` (`/planner`)
+
+- The week comes from the URL: `?week=2026-W45` arrives as the `week` input; absent or invalid, the page shows the
+  current week. The previous / next arrows are links to the neighbouring weeks, so reload and back keep the week.
+- `model/week.ts` does the date work with local `Date`s, never `toISOString()` (it would shift the day near
+  midnight): the week's Monday, ISO week numbers, the seven days and their slots. No date library in the UI.
+- `plannedMealApi.listBetween(...)` loads Monday to Sunday and reloads when the week changes. `week-view` shows each
+  meal's recipe title, or a "Planifier" button, disabled until a meal can be planned from the screen.
+- States: skeleton, the week, or an error state. No separate empty state: empty slots already say it.
 
 ### Import modal — `pages/import-recipe/`
 
