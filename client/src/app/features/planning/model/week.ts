@@ -20,6 +20,10 @@ const SLOTS: readonly { mealType: MealType; label: string }[] = [
 export interface PlannerSlot {
     mealType: MealType;
     label: string;
+    /** Calendar day, `YYYY-MM-DD`. */
+    date: string;
+    /** The slot in words, such as "le midi du lundi 2 nov.". */
+    description: string;
     /** Undefined when the slot is empty. */
     meal: PlannedMealSummary | undefined;
 }
@@ -83,6 +87,9 @@ export function toPlannerDays(monday: Date, meals: readonly PlannedMealSummary[]
             slots: SLOTS.map(({ mealType, label }) => ({
                 mealType,
                 label,
+                // Empty in the red TDD commit: a skeleton whose bodies come with the green commit
+                date: '',
+                description: '',
                 meal: meals.find((meal) => meal.date === date && meal.mealType === mealType),
             })),
         };

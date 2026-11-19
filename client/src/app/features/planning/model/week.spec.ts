@@ -125,8 +125,17 @@ describe('toPlannerDays', () => {
         const days = toPlannerDays(monday, [dinner]);
         const filled = days.flatMap((day) => day.slots).filter((slot) => slot.meal);
 
-        expect(filled).toEqual([{ mealType: 'DINNER', label: 'Soir', meal: dinner }]);
+        expect(filled).toMatchObject([{ mealType: 'DINNER', label: 'Soir', meal: dinner }]);
         expect(days[0]?.slots[1]?.meal).toEqual(dinner);
+    });
+
+    it('describes each slot in words', () => {
+        const [monday2] = toPlannerDays(monday, []);
+
+        expect(monday2?.slots.map((slot) => slot.description)).toEqual([
+            'le midi du lundi 2 nov.',
+            'le soir du lundi 2 nov.',
+        ]);
     });
 
     it('ignores a meal outside the week', () => {

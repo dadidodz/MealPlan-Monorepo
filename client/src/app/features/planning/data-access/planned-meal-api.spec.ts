@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ApiRoutes } from '../../../core/config/api.routes';
-import type { PlannedMealSummary } from '@mealplan/shared';
+import type { CreatePlannedMeal, PlannedMealSummary } from '@mealplan/shared';
 import { PlannedMealApi } from './planned-meal-api';
 
 const meal: PlannedMealSummary = {
@@ -43,5 +43,21 @@ describe('PlannedMealApi', () => {
         await TestBed.inject(ApplicationRef).whenStable();
 
         expect(meals.value()).toEqual([meal]);
+    });
+
+    it('posts the meal to plan', () => {
+        const payload: CreatePlannedMeal = {
+            date: '2026-11-02',
+            mealType: 'DINNER',
+            recipeId: 'recipe-1',
+            peopleCount: 4,
+        };
+
+        api.create(payload).subscribe();
+
+        const request = httpTesting.expectOne(ApiRoutes.PLANNED_MEALS.BASE);
+        expect(request.request.method).toBe('POST');
+        expect(request.request.body).toEqual(payload);
+        request.flush(null);
     });
 });

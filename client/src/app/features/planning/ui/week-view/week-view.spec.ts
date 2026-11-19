@@ -42,14 +42,36 @@ describe('WeekView', () => {
         expect(slots[1]?.querySelector('button')).toBeNull();
     });
 
-    it('offers to plan a meal on every empty slot, disabled for now', () => {
+    it('offers to plan a meal on every empty slot, naming the slot', () => {
         const buttons = Array.from(hostElement(fixture).querySelectorAll('button'));
 
         expect(buttons).toHaveLength(13);
+        expect(buttons[0]?.getAttribute('aria-label')).toBe('Planifier le midi du lundi 2 nov.');
         for (const button of buttons) {
             expect(button.textContent).toContain('Planifier');
-            expect(button.disabled).toBe(true);
+            expect(button.disabled).toBe(false);
         }
+    });
+
+    it('emits the slot when its button is tapped', () => {
+        const requested = vi.fn();
+        fixture.componentInstance.planRequested.subscribe(requested);
+
+        hostElement(fixture)
+            .querySelector<HTMLButtonElement>(
+                'button[aria-label="Planifier le soir du mardi 3 nov."]',
+            )
+            ?.click();
+
+        expect(requested).toHaveBeenCalledWith(
+            expect.objectContaining({ date: '2026-11-03', mealType: 'DINNER' }),
+        );
+    });
+
+    it('moves the focus to a day', () => {
+        fixture.componentInstance.focusDay('2026-11-04');
+
+        expect(document.activeElement?.textContent?.trim()).toBe('mercredi 4 nov.');
     });
 
     it('has no accessibility violations', async () => {
