@@ -52,5 +52,6 @@ jobs:
             - name: Build
               run: pnpm build
 
-            - name: Unit tests
-              run: pnpm test --watch=false
+            # Fails under 80% (coverageThresholds in angular.json)
+            - name: Unit tests with coverage
+              run: pnpm test:cov

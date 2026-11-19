@@ -53,8 +53,9 @@ jobs:
             - name: Build
               run: pnpm build
 
-            - name: Unit tests
-              run: pnpm test
+            # Fails under 80% on the domain and application layers (thresholds in vitest.config.mts)
+            - name: Unit tests with coverage
+              run: pnpm test:cov
 
             # Throwaway PostgreSQL in Docker (Testcontainers), available on GitHub's Ubuntu runners
             - name: Integration tests
