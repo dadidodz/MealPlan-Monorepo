@@ -1,16 +1,8 @@
-name: CI API
+name: CI
 
-# Only when the API, or something it builds on, changes. contracts/: the e2e tests check responses against it.
+# Every pull request runs both layers: no path filters, so no required check is ever left pending
 on:
     pull_request:
-        paths:
-            - 'api/**'
-            - 'shared/**'
-            - 'contracts/**'
-            - 'package.json'
-            - 'pnpm-lock.yaml'
-            - 'pnpm-workspace.yaml'
-            - '.github/workflows/ci-api.yml'
 
 permissions:
     contents: read
@@ -21,7 +13,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    test:
+    api:
         name: API lint, build and tests
         runs-on: ubuntu-latest
         defaults:
@@ -66,3 +58,55 @@ jobs:
               env:
                   # The e2e tests boot the whole app, whose Gemini adapter needs a key at startup; no test calls Gemini
                   GEMINI_API_KEY: not-used-in-tests
+
+    client:
+        name: Client lint, build and tests
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: client
+        steps:
+            - name: Check out the code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # Reads the pnpm version from `packageManager` in the root package.json
+            - name: Set up pnpm
+              uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+            - name: Set up Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: pnpm
+
+            # The client and what it depends on (shared/) only
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile --filter mealplan-ui...
+
+            - name: Lint
+              run: pnpm lint
+
+            - name: Build
+              run: pnpm build
+
+            # Fails under 80% (coverageThresholds in angular.json)
+            - name: Unit tests with coverage
+              run: pnpm test:cov
+
+    # The one check the main ruleset needs: always runs, red if any job before it failed, was cancelled or skipped
+    ci-passed:
+        name: CI passed
+        if: always()
+        needs: [api, client]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check every job succeeded
+              env:
+                  RESULTS: ${{ join(needs.*.result, ' ') }}
+              run: |
+                  echo "Job results: $RESULTS"
+                  for result in $RESULTS; do
+                      [ "$result" = success ] || exit 1
+                  done
