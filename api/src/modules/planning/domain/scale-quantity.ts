@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- red TDD commit: a skeleton whose bodies come with the green commit */
 import { PlannedMealDetails } from './planned-meal-reader.port';
 
 /**
@@ -10,7 +9,7 @@ export function scaleQuantity(
     peopleCount: number,
     basePortions: number,
 ): number | null {
-    throw new Error('Not implemented');
+    return quantity === null ? null : (quantity * peopleCount) / basePortions;
 }
 
 /** A planned meal with its quantities for the meal's number of people. */
@@ -19,5 +18,15 @@ export type ScaledPlannedMeal = Omit<PlannedMealDetails, 'recipe'> & {
 };
 
 export function scalePlannedMeal(meal: PlannedMealDetails): ScaledPlannedMeal {
-    throw new Error('Not implemented');
+    const { basePortions, ...recipe } = meal.recipe;
+    return {
+        ...meal,
+        recipe: {
+            ...recipe,
+            ingredients: recipe.ingredients.map((ingredient) => ({
+                ...ingredient,
+                quantity: scaleQuantity(ingredient.quantity, meal.peopleCount, basePortions),
+            })),
+        },
+    };
 }

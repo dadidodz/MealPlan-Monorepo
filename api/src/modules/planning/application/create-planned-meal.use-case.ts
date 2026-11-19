@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- red TDD commit: a skeleton whose bodies come with the green commit */
-import { NewPlannedMeal } from '../domain/planned-meal.entity';
+import { NewPlannedMeal, PlannedMeal } from '../domain/planned-meal.entity';
 import { PlannedMealReader } from '../domain/planned-meal-reader.port';
 import { PlannedMealRepository } from '../domain/planned-meal-repository.port';
-import { ScaledPlannedMeal } from '../domain/scale-quantity';
+import { ScaledPlannedMeal, scalePlannedMeal } from '../domain/scale-quantity';
 
 export class CreatePlannedMealUseCase {
     constructor(
@@ -16,7 +15,9 @@ export class CreatePlannedMealUseCase {
      * @throws SlotAlreadyTakenError if a meal is already planned on the slot; it isn't replaced.
      * @throws RecipeNotFoundError if the recipe doesn't exist.
      */
-    execute(command: NewPlannedMeal): Promise<ScaledPlannedMeal> {
-        throw new Error('Not implemented');
+    async execute(command: NewPlannedMeal): Promise<ScaledPlannedMeal> {
+        const meal = PlannedMeal.create(command);
+        await this.repository.add(meal);
+        return scalePlannedMeal(await this.reader.getDetails(meal.id));
     }
 }

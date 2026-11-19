@@ -1,7 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- red TDD commit: a skeleton whose bodies come with the green commit */
 import { Temporal } from '@js-temporal/polyfill';
+import { InvalidPlannedMealError } from './invalid-planned-meal.error';
 
 export type MealType = 'LUNCH' | 'DINNER';
+
+const MIN_PEOPLE = 1;
+const MAX_PEOPLE = 100;
 
 export interface PlannedMealProps {
     id: string;
@@ -23,7 +26,17 @@ export class PlannedMeal {
      * @throws InvalidPlannedMealError if it isn't a whole number from 1 to 100.
      */
     static create(input: NewPlannedMeal): PlannedMeal {
-        throw new Error('Not implemented');
+        const { peopleCount } = input;
+        if (
+            !Number.isInteger(peopleCount) ||
+            peopleCount < MIN_PEOPLE ||
+            peopleCount > MAX_PEOPLE
+        ) {
+            throw new InvalidPlannedMealError(
+                `peopleCount must be a whole number from ${MIN_PEOPLE} to ${MAX_PEOPLE}, got ${peopleCount}`,
+            );
+        }
+        return new PlannedMeal({ ...input, id: crypto.randomUUID() });
     }
 
     /** Rebuild from storage: data was valid when saved, no checks. Only mappers (and test data) call this. */
