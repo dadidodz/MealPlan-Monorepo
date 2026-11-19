@@ -1,18 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars -- red TDD commit: a skeleton whose bodies come with the green commit */
 import { Injectable } from '@nestjs/common';
 import { Temporal } from '@js-temporal/polyfill';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
-import { PlannedMealReader, PlannedMealSummary } from '../domain/planned-meal-reader.port';
-
-// Prisma represents a `@db.Date` column as a `Date` at midnight UTC, whatever the server's time zone
-function toDate(day: Temporal.PlainDate): Date {
-    return new Date(day.toZonedDateTime('UTC').epochMilliseconds);
-}
-
-function toPlainDate(date: Date): Temporal.PlainDate {
-    return Temporal.Instant.fromEpochMilliseconds(date.getTime())
-        .toZonedDateTimeISO('UTC')
-        .toPlainDate();
-}
+import {
+    PlannedMealDetails,
+    PlannedMealReader,
+    PlannedMealSummary,
+} from '../domain/planned-meal-reader.port';
+import { toDate, toPlainDate } from './planned-meal.mapper';
 
 @Injectable()
 export class PrismaPlannedMealReader implements PlannedMealReader {
@@ -36,5 +31,9 @@ export class PrismaPlannedMealReader implements PlannedMealReader {
         });
 
         return rows.map((row) => ({ ...row, date: toPlainDate(row.date) }));
+    }
+
+    getDetails(id: string): Promise<PlannedMealDetails> {
+        throw new Error('Not implemented');
     }
 }
