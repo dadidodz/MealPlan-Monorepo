@@ -1,6 +1,0 @@
-# Keep the build context to source files: no host dependencies, build output or caches in the image
-node_modules
-dist
-coverage
-.angular
-.git

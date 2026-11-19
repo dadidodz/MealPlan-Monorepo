@@ -20,3 +20,13 @@ pnpm --filter MealPlan-API start:dev # API on http://localhost:3000/api (health:
 pnpm --filter mealplan-ui start      # client on http://localhost:4200, /api proxied to the API
 pnpm --filter mealplan-ui mock       # or: Prism mock of the contract on 127.0.0.1:4010 (then start:mock)
 ```
+
+## Docker images
+
+Built from the repository root, since each layer needs the lockfile and `shared/` (and the API `contracts/`):
+
+```bash
+docker build -f api/Dockerfile -t mealplan-api .                    # the API (port 3000)
+docker build -f api/Dockerfile --target migrate -t mealplan-migrate . # one-shot job: applies pending migrations
+docker build -f client/Dockerfile -t mealplan-client .              # the client, served by nginx (port 80)
+```

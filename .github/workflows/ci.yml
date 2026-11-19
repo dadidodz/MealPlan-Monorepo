@@ -1,0 +1,158 @@
+name: CI
+
+# Every pull request runs both layers: no path filters, so no required check is ever left pending. On main (after a
+# merge) the same checks run again, then the images are published
+on:
+    pull_request:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
+
+# A new push to the same PR cancels the run still going; on main a run is never cancelled mid-publish
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+    api:
+        name: API lint, build and tests
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: api
+        steps:
+            - name: Check out the code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # Reads the pnpm version from `packageManager` in the root package.json
+            - name: Set up pnpm
+              uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+            - name: Set up Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: pnpm
+
+            # The API and what it depends on (shared/) only; also generates the Prisma client
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile --filter MealPlan-API...
+
+            - name: Lint
+              run: pnpm lint
+
+            - name: Build
+              run: pnpm build
+
+            # Fails under 80% on the domain and application layers (thresholds in vitest.config.mts)
+            - name: Unit tests with coverage
+              run: pnpm test:cov
+
+            # Throwaway PostgreSQL in Docker (Testcontainers), available on GitHub's Ubuntu runners
+            - name: Integration tests
+              run: pnpm test:int
+
+            - name: End-to-end and contract tests
+              run: pnpm test:e2e
+              env:
+                  # The e2e tests boot the whole app, whose Gemini adapter needs a key at startup; no test calls Gemini
+                  GEMINI_API_KEY: not-used-in-tests
+
+    client:
+        name: Client lint, build and tests
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: client
+        steps:
+            - name: Check out the code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # Reads the pnpm version from `packageManager` in the root package.json
+            - name: Set up pnpm
+              uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+            - name: Set up Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: pnpm
+
+            # The client and what it depends on (shared/) only
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile --filter mealplan-ui...
+
+            - name: Lint
+              run: pnpm lint
+
+            - name: Build
+              run: pnpm build
+
+            # Fails under 80% (coverageThresholds in angular.json)
+            - name: Unit tests with coverage
+              run: pnpm test:cov
+
+    # Delivery: the images are built on every pull request (a broken Dockerfile fails it) and published to the GitHub
+    # Container Registry only on main, once both layers are green
+    images:
+        name: Docker images
+        needs: [api, client]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        env:
+            REGISTRY: ghcr.io/${{ github.repository_owner }}
+            # Links each published package to this repository on GitHub
+            SOURCE_LABEL: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+        steps:
+            - name: Check out the code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # Built from the repository root (see each Dockerfile); api and migrate share their dependency stage
+            - name: Build the images
+              run: |
+                  docker build -f api/Dockerfile --label "$SOURCE_LABEL" -t "$REGISTRY/mealplan-monorepo-api:$GITHUB_SHA" .
+                  docker build -f api/Dockerfile --target migrate --label "$SOURCE_LABEL" -t "$REGISTRY/mealplan-monorepo-migrate:$GITHUB_SHA" .
+                  docker build -f client/Dockerfile --label "$SOURCE_LABEL" -t "$REGISTRY/mealplan-monorepo-client:$GITHUB_SHA" .
+
+            - name: Log in to the GitHub Container Registry
+              if: github.event_name == 'push'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            # Each image twice: the commit's SHA (a fixed version) and latest (the last green main)
+            - name: Publish the images
+              if: github.event_name == 'push'
+              run: |
+                  for image in api migrate client; do
+                      name="$REGISTRY/mealplan-monorepo-$image"
+                      docker tag "$name:$GITHUB_SHA" "$name:latest"
+                      docker push "$name:$GITHUB_SHA"
+                      docker push "$name:latest"
+                  done
+
+    # The one check the main ruleset needs: always runs, red if any job before it failed, was cancelled or skipped
+    ci-passed:
+        name: CI passed
+        if: always()
+        needs: [api, client, images]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check every job succeeded
+              env:
+                  RESULTS: ${{ join(needs.*.result, ' ') }}
+              run: |
+                  echo "Job results: $RESULTS"
+                  for result in $RESULTS; do
+                      [ "$result" = success ] || exit 1
+                  done
