@@ -1,16 +1,19 @@
 name: CI
 
-# Every pull request runs both layers: no path filters, so no required check is ever left pending
+# Every pull request runs both layers: no path filters, so no required check is ever left pending. On main (after a
+# merge) the same checks run again, then the images are published
 on:
     pull_request:
+    push:
+        branches: [main]
 
 permissions:
     contents: read
 
-# A new push to the same PR cancels the run still going
+# A new push to the same PR cancels the run still going; on main a run is never cancelled mid-publish
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     api:
@@ -95,11 +98,54 @@ jobs:
             - name: Unit tests with coverage
               run: pnpm test:cov
 
+    # Delivery: the images are built on every pull request (a broken Dockerfile fails it) and published to the GitHub
+    # Container Registry only on main, once both layers are green
+    images:
+        name: Docker images
+        needs: [api, client]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        env:
+            REGISTRY: ghcr.io/${{ github.repository_owner }}
+            # Links each published package to this repository on GitHub
+            SOURCE_LABEL: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+        steps:
+            - name: Check out the code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # Built from the repository root (see each Dockerfile); api and migrate share their dependency stage
+            - name: Build the images
+              run: |
+                  docker build -f api/Dockerfile --label "$SOURCE_LABEL" -t "$REGISTRY/mealplan-monorepo-api:$GITHUB_SHA" .
+                  docker build -f api/Dockerfile --target migrate --label "$SOURCE_LABEL" -t "$REGISTRY/mealplan-monorepo-migrate:$GITHUB_SHA" .
+                  docker build -f client/Dockerfile --label "$SOURCE_LABEL" -t "$REGISTRY/mealplan-monorepo-client:$GITHUB_SHA" .
+
+            - name: Log in to the GitHub Container Registry
+              if: github.event_name == 'push'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            # Each image twice: the commit's SHA (a fixed version) and latest (the last green main)
+            - name: Publish the images
+              if: github.event_name == 'push'
+              run: |
+                  for image in api migrate client; do
+                      name="$REGISTRY/mealplan-monorepo-$image"
+                      docker tag "$name:$GITHUB_SHA" "$name:latest"
+                      docker push "$name:$GITHUB_SHA"
+                      docker push "$name:latest"
+                  done
+
     # The one check the main ruleset needs: always runs, red if any job before it failed, was cancelled or skipped
     ci-passed:
         name: CI passed
         if: always()
-        needs: [api, client]
+        needs: [api, client, images]
         runs-on: ubuntu-latest
         steps:
             - name: Check every job succeeded
