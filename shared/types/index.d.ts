@@ -17,7 +17,7 @@ export interface PlannedMealSummary {
     id: string;
     date: CalendarDay;
     mealType: MealType;
-    /** Whole number, 1 or more. */
+    /** Whole number, from 1 to 100. */
     peopleCount: number;
     recipe: {
         id: string;
