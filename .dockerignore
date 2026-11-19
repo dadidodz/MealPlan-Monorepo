@@ -1,0 +1,8 @@
+# Images are built from the repository root: keep the context to source files, with no host dependencies, build
+# output, caches or secrets
+**/node_modules
+**/dist
+**/coverage
+**/.angular
+**/.env*
+.git
