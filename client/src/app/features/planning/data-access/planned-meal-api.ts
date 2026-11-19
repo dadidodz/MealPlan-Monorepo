@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- red TDD commit: a skeleton whose bodies come with the green commit */
 import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -29,6 +28,6 @@ export class PlannedMealApi {
 
     /** Plans a recipe on a slot. A slot already taken fails with a 409 `SLOT_ALREADY_TAKEN`, nothing is replaced. */
     public create(meal: CreatePlannedMeal): Observable<PlannedMeal> {
-        throw new Error('Not implemented');
+        return this.http.post<PlannedMeal>(ApiRoutes.PLANNED_MEALS.BASE, meal);
     }
 }
