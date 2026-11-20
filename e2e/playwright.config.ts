@@ -25,8 +25,9 @@ export default defineConfig({
         baseURL: `http://localhost:${CLIENT_PORT}`,
         trace: 'retain-on-failure',
     },
-    // The user's installed Chrome (also on the CI's Ubuntu runners): no browser download
-    projects: [{ name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } }],
+    // Phone width, as the app is used on a phone (touch, bottom navigation). The installed Chrome (also on the CI's
+    // Ubuntu runners): no browser download. Add a 'Desktop Chrome' project to also cover the sidebar layout
+    projects: [{ name: 'mobile', use: { ...devices['Pixel 7'], channel: 'chrome' } }],
     webServer: [
         {
             // Migrations first (creates the database if missing), then the built API

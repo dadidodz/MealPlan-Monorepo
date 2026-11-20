@@ -154,6 +154,21 @@ describe('PrismaRecipeRepository', () => {
         expect(await prisma.ingredient.count()).toBe(1);
     });
 
+    // Found by the E2E tests: two saves creating the same new ingredient at the same instant both inserted it
+    it('saves recipes created at the same instant with the same new ingredients', async () => {
+        const salt = (): RecipeIngredient =>
+            new RecipeIngredient(crypto.randomUUID(), 'Sel', null, null, true, 'sel');
+        const recipes = Array.from({ length: 10 }, () =>
+            aRecipe({ ingredients: [flour(), salt()] }),
+        );
+
+        const results = await Promise.allSettled(recipes.map((recipe) => repository.save(recipe)));
+
+        expect(results.filter(({ status }) => status === 'rejected')).toEqual([]);
+        expect(await prisma.recipe.count()).toBe(10);
+        expect(await prisma.ingredient.count()).toBe(2);
+    });
+
     it('reads a stored category outside the list as other', async () => {
         const recipe = aRecipe();
         await repository.save(recipe);
