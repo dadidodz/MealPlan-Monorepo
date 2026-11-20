@@ -96,11 +96,17 @@ jobs:
               run: pnpm lint
 
             - name: Build
+              id: build
               run: pnpm build
 
             # Fails under 80% (coverageThresholds in angular.json)
             - name: Unit tests with coverage
               run: pnpm test:cov
+
+            # The data-access services against the Prism mock of contracts/openapi.yaml, started by the tests themselves
+            - name: Integration tests (Prism mock)
+              if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+              run: pnpm test:int
 
     # Delivery: the images are built on every pull request (a broken Dockerfile fails it) and published to the GitHub
     # Container Registry only on main, once both layers are green

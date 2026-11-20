@@ -89,6 +89,12 @@
                             "functions": 80,
                             "lines": 80
                         }
+                    },
+                    "configurations": {
+                        "integration": {
+                            "include": ["src/**/*.int-spec.ts"],
+                            "runnerConfig": "vitest-integration.config.mts"
+                        }
                     }
                 },
                 "lint": {

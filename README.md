@@ -19,6 +19,7 @@ pnpm --filter MealPlan-API exec prisma migrate deploy
 pnpm --filter MealPlan-API start:dev # API on http://localhost:3000/api (health: /api/app/health)
 pnpm --filter mealplan-ui start      # client on http://localhost:4200, /api proxied to the API
 pnpm --filter mealplan-ui mock       # or: Prism mock of the contract on 127.0.0.1:4010 (then start:mock)
+pnpm --filter mealplan-ui test:int   # client services against a Prism mock of the contract (started by the tests)
 ```
 
 ## Docker images
