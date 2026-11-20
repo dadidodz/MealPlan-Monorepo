@@ -15,6 +15,11 @@ describe('toUserMessage', () => {
         );
     });
 
+    it('says a slot was taken meanwhile from the API code', () => {
+        const error = new HttpErrorResponse({ status: 409, error: { code: 'SLOT_ALREADY_TAKEN' } });
+        expect(toUserMessage(error)).toBe("Ce créneau vient d'être pris.");
+    });
+
     it('falls back to the status for an unknown code', () => {
         const error = new HttpErrorResponse({ status: 404, error: { code: 'SOMETHING_ELSE' } });
         expect(toUserMessage(error)).toBe('Élément introuvable.');

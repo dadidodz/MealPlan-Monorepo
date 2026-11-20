@@ -10,6 +10,7 @@
         "watch": "ng build --watch --configuration development",
         "test": "ng test",
         "test:cov": "ng test --watch=false --coverage",
+        "test:int": "ng test --configuration integration --watch=false",
         "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
         "lint": "ng lint"
     },

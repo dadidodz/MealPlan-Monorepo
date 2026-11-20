@@ -2,6 +2,7 @@ packages:
   - api
   - client
   - shared
+  - e2e
 
 # Install scripts allowed (true) or blocked (false), for both layers
 allowBuilds:

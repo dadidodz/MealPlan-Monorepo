@@ -12,14 +12,18 @@ const DAY_LABEL = new Intl.DateTimeFormat('fr-FR', {
 });
 const RANGE_LABEL = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
 
-const SLOTS: readonly { mealType: MealType; label: string }[] = [
-    { mealType: 'LUNCH', label: 'Midi' },
-    { mealType: 'DINNER', label: 'Soir' },
+const SLOTS: readonly { mealType: MealType; label: string; inWords: string }[] = [
+    { mealType: 'LUNCH', label: 'Midi', inWords: 'le midi' },
+    { mealType: 'DINNER', label: 'Soir', inWords: 'le soir' },
 ];
 
 export interface PlannerSlot {
+    /** Calendar day, `YYYY-MM-DD`. */
+    date: string;
     mealType: MealType;
     label: string;
+    /** The slot in words, such as "le midi du lundi 2 nov.". */
+    description: string;
     /** Undefined when the slot is empty. */
     meal: PlannedMealSummary | undefined;
 }
@@ -77,12 +81,15 @@ export function toPlannerDays(monday: Date, meals: readonly PlannedMealSummary[]
     return Array.from({ length: 7 }, (_, index) => {
         const day = addDays(monday, index);
         const date = toDayString(day);
+        const dayLabel = DAY_LABEL.format(day);
         return {
             date,
-            label: DAY_LABEL.format(day),
-            slots: SLOTS.map(({ mealType, label }) => ({
+            label: dayLabel,
+            slots: SLOTS.map(({ mealType, label, inWords }) => ({
+                date,
                 mealType,
                 label,
+                description: `${inWords} du ${dayLabel}`,
                 meal: meals.find((meal) => meal.date === date && meal.mealType === mealType),
             })),
         };

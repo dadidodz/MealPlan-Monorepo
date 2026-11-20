@@ -1,7 +1,8 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { resetDatabase } from '../../../../test/support/reset-database';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
-import { MealType } from '../domain/planned-meal-reader.port';
+import { PlannedMealNotFoundError } from '../domain/planned-meal-not-found.error';
+import { MealType } from '../domain/planned-meal.entity';
 import { PrismaPlannedMealReader } from './prisma-planned-meal.reader';
 
 const day = (date: string): Temporal.PlainDate => Temporal.PlainDate.from(date);
@@ -62,6 +63,66 @@ describe('PrismaPlannedMealReader', () => {
             mealType: 'DINNER',
             peopleCount: 4,
             recipe: { id: recipeId, title: 'Burger maison' },
+        });
+    });
+
+    describe('getDetails', () => {
+        it('reads the meal with its recipe as stored, ingredients in recipe order', async () => {
+            const recipe = await prisma.recipe.create({
+                data: {
+                    title: 'Salade de tomates',
+                    basePortions: 2,
+                    instructions: ['Couper', 'Servir'],
+                    category: 'salad',
+                    ingredients: {
+                        create: [
+                            {
+                                position: 1,
+                                quantity: null,
+                                ingredient: { create: { name: 'sel', code: 'sel' } },
+                            },
+                            {
+                                position: 0,
+                                quantity: 200,
+                                unit: 'g',
+                                ingredient: { create: { name: 'tomate', code: 'tomate' } },
+                            },
+                        ],
+                    },
+                },
+            });
+            const meal = await prisma.plannedMeal.create({
+                data: {
+                    date: new Date('2026-11-02T00:00:00Z'),
+                    mealType: 'LUNCH',
+                    peopleCount: 4,
+                    recipeId: recipe.id,
+                },
+            });
+
+            const details = await reader.getDetails(meal.id);
+
+            expect(details.date.toString()).toBe('2026-11-02');
+            expect(details).toMatchObject({
+                mealType: 'LUNCH',
+                peopleCount: 4,
+                recipe: {
+                    id: recipe.id,
+                    title: 'Salade de tomates',
+                    category: 'salad',
+                    imageUrl: null,
+                    basePortions: 2,
+                    instructions: ['Couper', 'Servir'],
+                    ingredients: [
+                        { name: 'tomate', quantity: 200, unit: 'g' },
+                        { name: 'sel', quantity: null, unit: null },
+                    ],
+                },
+            });
+        });
+
+        it('refuses an unknown id', async () => {
+            await expect(reader.getDetails('not-a-meal')).rejects.toThrow(PlannedMealNotFoundError);
         });
     });
 

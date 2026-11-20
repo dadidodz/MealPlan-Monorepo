@@ -24,12 +24,28 @@
   @if (meals.error(); as error) {
     <app-error-state [error]="error" (retry)="meals.reload()" />
   } @else if (meals.hasValue()) {
-    <app-week-view [monday]="monday()" [meals]="meals.value()" />
+    @if (meals.isLoading()) {
+      <progress class="progress w-full mb-2" aria-label="Actualisation"></progress>
+    }
+    <app-week-view
+      [monday]="monday()"
+      [meals]="meals.value()"
+      (planRequested)="openPlanModal($event)"
+    />
   } @else {
     <div class="flex flex-col gap-3">
       @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
         <div class="skeleton h-32 w-full rounded-2xl"></div>
       }
     </div>
+  }
+
+  @if (slotToPlan(); as slot) {
+    <app-plan-meal-modal
+      [slotDescription]="slot.description"
+      [planForm]="planForm"
+      [(error)]="planError"
+      (closed)="slotToPlan.set(undefined)"
+    />
   }
 </div>

@@ -56,6 +56,17 @@ export class RecipeMapper {
         });
     }
 
+    /**
+     * The recipe's ingredients as rows to insert when missing, sorted by code: two saves inserting the same
+     * ingredients then lock them in the same order, so they can't deadlock.
+     */
+    static toIngredientRows(recipe: Recipe): Prisma.IngredientCreateManyInput[] {
+        // No category: an ingredient created from a recipe has none yet
+        return recipe.ingredients
+            .map((i) => ({ id: i.ingredientId, name: i.name, code: i.code }))
+            .sort((a, b) => a.code.localeCompare(b.code));
+    }
+
     static toPersistence(recipe: Recipe): RecipePersistence {
         return {
             id: recipe.id,
@@ -75,17 +86,8 @@ export class RecipeMapper {
                     quantity: i.quantity,
                     unit: i.unit,
                     isIgnoredInShoppingList: i.isIgnoredInShoppingList,
-                    ingredient: {
-                        connectOrCreate: {
-                            where: { code: i.code },
-                            create: {
-                                id: i.ingredientId,
-                                name: i.name,
-                                code: i.code,
-                                // No category yet: an ingredient created from a recipe has none
-                            },
-                        },
-                    },
+                    // The ingredient row exists: `toIngredientRows` is inserted first
+                    ingredient: { connect: { code: i.code } },
                 })),
             },
         };

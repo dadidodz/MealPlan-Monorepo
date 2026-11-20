@@ -11,6 +11,14 @@ export class PrismaRecipeRepository implements RecipeRepository {
     async save(recipe: Recipe): Promise<void> {
         const data = RecipeMapper.toPersistence(recipe);
 
+        // Missing ingredients first, in one atomic statement (INSERT … ON CONFLICT DO NOTHING): with connectOrCreate
+        // (look up, then insert), two saves at the same instant with the same new ingredient both inserted it, and
+        // the second failed on the unique code. Outside a transaction on purpose: if the recipe then fails to save,
+        // a new ingredient stays, unused, like any ingredient whose recipes were deleted
+        await this.prisma.ingredient.createMany({
+            data: RecipeMapper.toIngredientRows(recipe),
+            skipDuplicates: true,
+        });
         await this.prisma.recipe.upsert({
             where: { id: recipe.id },
             create: data,

@@ -1,2 +1,6 @@
 node_modules/
 .env
+
+# Playwright output (e2e/)
+test-results/
+playwright-report/

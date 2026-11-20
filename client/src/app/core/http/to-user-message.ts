@@ -5,6 +5,7 @@ import { ApiError } from './api-error';
 const MESSAGE_BY_CODE = new Map<string, string>([
     ['RECIPE_NOT_FOUND', 'Recette introuvable.'],
     ['INVALID_RECIPE', 'Recette invalide (titre vide ou nombre de portions incorrect).'],
+    ['SLOT_ALREADY_TAKEN', "Ce créneau vient d'être pris."],
     ['NOT_A_RECIPE', 'Cette vidéo ne montre pas de recette.'],
     ['INVALID_AI_OUTPUT', "L'IA a rendu une recette inutilisable. Réessaie ou crée-la à la main."],
     // Private or deleted video, timeout, file too big: on purpose, the user isn't told which
@@ -28,7 +29,8 @@ export function toUserMessage(error: unknown): string {
     return 'La requête a échoué.';
 }
 
-function errorCode(body: unknown): string | undefined {
+/** The stable `code` of an API error body, if it has one. */
+export function errorCode(body: unknown): string | undefined {
     if (
         typeof body === 'object' &&
         body !== null &&

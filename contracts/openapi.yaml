@@ -302,9 +302,10 @@ components:
                 - drink
                 - other
         PeopleCount:
-            description: How many people eat this meal. Whole number, 1 or more.
+            description: How many people eat this meal. Whole number, from 1 to 100.
             type: integer
             minimum: 1
+            maximum: 100
 
         PlannedMealSummary:
             type: object

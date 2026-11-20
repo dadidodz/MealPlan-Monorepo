@@ -1,0 +1,68 @@
+<dialog
+  #dialog
+  class="modal modal-bottom sm:modal-middle"
+  aria-labelledby="plan-meal-title"
+  (close)="closed.emit()"
+>
+  <div
+    class="modal-box flex max-h-[85vh] flex-col gap-4 border-t-2 border-base-content/15 sm:border-2"
+  >
+    <button
+      #closeButton
+      type="button"
+      class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4"
+      aria-label="Fermer"
+      (click)="close()"
+    >
+      <app-icon name="lucideX" size="1.2rem" />
+    </button>
+
+    <h2 id="plan-meal-title" class="pr-10 text-xl font-bold text-base-content">
+      Planifier {{ slotDescription() }}
+    </h2>
+
+    @if (planForm().recipe().value(); as recipe) {
+      <form [formRoot]="planForm()" class="flex flex-col gap-4">
+        <div>
+          <p class="font-medium text-base-content break-words">{{ recipe.title }}</p>
+          <button type="button" class="btn btn-ghost btn-sm -ml-3 mt-1" (click)="changeRecipe()">
+            <app-icon name="lucideArrowLeft" size="1rem" />
+            Changer de recette
+          </button>
+        </div>
+
+        <div>
+          <label for="plan-meal-people" class="label font-bold text-base-content">
+            Nombre de personnes
+          </label>
+          <input
+            #peopleInput
+            id="plan-meal-people"
+            type="number"
+            inputmode="numeric"
+            class="input mt-1 w-full border-2 border-base-content/15 bg-base-200 focus:border-primary focus:bg-base-100"
+            aria-describedby="plan-meal-people-errors"
+            [attr.aria-invalid]="
+              planForm().peopleCount().touched() && planForm().peopleCount().invalid()
+            "
+            [formField]="planForm().peopleCount"
+          />
+          <app-field-errors id="plan-meal-people-errors" [field]="planForm().peopleCount()" />
+        </div>
+
+        @if (error(); as message) {
+          <p role="alert" class="text-sm text-error">{{ message }}</p>
+        }
+
+        <button type="submit" class="btn btn-primary" [disabled]="planForm()().submitting()">
+          @if (planForm()().submitting()) {
+            <span class="loading loading-spinner"></span>
+          }
+          Planifier
+        </button>
+      </form>
+    } @else {
+      <app-recipe-picker (picked)="pickRecipe($event)" />
+    }
+  </div>
+</dialog>

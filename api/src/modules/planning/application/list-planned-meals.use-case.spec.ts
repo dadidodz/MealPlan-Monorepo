@@ -1,7 +1,8 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { InvalidDateRangeError } from '../domain/invalid-date-range.error';
 import { InMemoryPlannedMealReader } from '../domain/planned-meal-reader.fake';
-import { MealType, PlannedMealSummary } from '../domain/planned-meal-reader.port';
+import { MealType } from '../domain/planned-meal.entity';
+import { PlannedMealSummary } from '../domain/planned-meal-reader.port';
 import { ListPlannedMealsUseCase } from './list-planned-meals.use-case';
 
 function aMeal(date: string, mealType: MealType): PlannedMealSummary {

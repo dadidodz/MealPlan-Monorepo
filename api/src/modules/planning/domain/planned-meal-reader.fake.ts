@@ -1,9 +1,14 @@
 import { Temporal } from '@js-temporal/polyfill';
-import { PlannedMealReader, PlannedMealSummary } from './planned-meal-reader.port';
+import { PlannedMealNotFoundError } from './planned-meal-not-found.error';
+import {
+    PlannedMealDetails,
+    PlannedMealReader,
+    PlannedMealSummary,
+} from './planned-meal-reader.port';
 
 const MEAL_ORDER = ['LUNCH', 'DINNER'];
 
-/** Reads the meals it is given, sorted like the Prisma reader. */
+/** Reads the meals it is given, sorted like the Prisma reader. It has no details: `getDetails` finds nothing. */
 export class InMemoryPlannedMealReader implements PlannedMealReader {
     constructor(private readonly meals: PlannedMealSummary[]) {}
 
@@ -20,5 +25,9 @@ export class InMemoryPlannedMealReader implements PlannedMealReader {
                     MEAL_ORDER.indexOf(a.mealType) - MEAL_ORDER.indexOf(b.mealType),
             );
         return Promise.resolve(meals);
+    }
+
+    getDetails(id: string): Promise<PlannedMealDetails> {
+        return Promise.reject(new PlannedMealNotFoundError(id));
     }
 }

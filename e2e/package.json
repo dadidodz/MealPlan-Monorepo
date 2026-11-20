@@ -1,0 +1,13 @@
+{
+    "name": "mealplan-e2e",
+    "private": true,
+    "scripts": {
+        "test": "playwright test"
+    },
+    "devDependencies": {
+        "@mealplan/shared": "workspace:*",
+        "@playwright/test": "^1.65.1",
+        "@types/pg": "^8.23.1",
+        "pg": "^8.23.1"
+    }
+}

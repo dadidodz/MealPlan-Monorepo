@@ -213,5 +213,138 @@ describe('API contract (openapi.yaml)', () => {
                 expect(contractErrors('get', '/planned-meals', response)).toEqual([]);
             });
         });
+
+        describe('POST /planned-meals', () => {
+            const slot = { date: '2026-11-02', mealType: 'DINNER' };
+            let burgerId: string;
+
+            function post(body: object): request.Test {
+                return request(app.getHttpServer()).post('/planned-meals').send(body);
+            }
+
+            beforeEach(async () => {
+                // A burger recipe for 2
+                const burger = await app.get(PrismaService).recipe.create({
+                    data: {
+                        title: 'Burger maison',
+                        basePortions: 2,
+                        instructions: ['Monter les burgers.'],
+                        category: 'sandwich',
+                        ingredients: {
+                            create: [
+                                {
+                                    position: 0,
+                                    quantity: 1,
+                                    unit: 'pièce',
+                                    ingredient: { create: { name: 'oignon', code: 'oignon' } },
+                                },
+                                {
+                                    position: 1,
+                                    quantity: null,
+                                    ingredient: { create: { name: 'sel', code: 'sel' } },
+                                },
+                            ],
+                        },
+                    },
+                });
+                burgerId = burger.id;
+            });
+
+            it('answers 201 in the contract format, quantities scaled to the meal', async () => {
+                const response = await post({ ...slot, recipeId: burgerId, peopleCount: 3 }).expect(
+                    201,
+                );
+                const body: unknown = response.body;
+
+                expect(contractErrors('post', '/planned-meals', response)).toEqual([]);
+                expect(body).toMatchObject({
+                    ...slot,
+                    peopleCount: 3,
+                    recipe: {
+                        id: burgerId,
+                        title: 'Burger maison',
+                        ingredients: [
+                            { name: 'oignon', quantity: 1.5, unit: 'pièce' },
+                            { name: 'sel', quantity: null, unit: null },
+                        ],
+                    },
+                });
+            });
+
+            it('shows the new meal in the week', async () => {
+                await post({ ...slot, recipeId: burgerId, peopleCount: 4 }).expect(201);
+
+                const response = await request(app.getHttpServer())
+                    .get('/planned-meals')
+                    .query({ from: slot.date, to: slot.date })
+                    .expect(200);
+                const body: unknown = response.body;
+
+                expect(body).toMatchObject([{ ...slot, peopleCount: 4 }]);
+            });
+
+            it.each([1, 100])('accepts %s people', async (peopleCount) => {
+                await post({ ...slot, recipeId: burgerId, peopleCount }).expect(201);
+            });
+
+            it('answers 409 SLOT_ALREADY_TAKEN in the contract format, keeping the meal', async () => {
+                await post({ ...slot, recipeId: burgerId, peopleCount: 4 }).expect(201);
+
+                const response = await post({ ...slot, recipeId: burgerId, peopleCount: 8 }).expect(
+                    409,
+                );
+                const body: unknown = response.body;
+
+                expect(contractErrors('post', '/planned-meals', response)).toEqual([]);
+                expect(body).toMatchObject({ code: 'SLOT_ALREADY_TAKEN' });
+                expect(
+                    await app.get(PrismaService).plannedMeal.findMany({
+                        select: { peopleCount: true },
+                    }),
+                ).toEqual([{ peopleCount: 4 }]);
+            });
+
+            it('answers 404 RECIPE_NOT_FOUND in the contract format', async () => {
+                const response = await post({
+                    ...slot,
+                    recipeId: '3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f',
+                    peopleCount: 4,
+                }).expect(404);
+                const body: unknown = response.body;
+
+                expect(contractErrors('post', '/planned-meals', response)).toEqual([]);
+                expect(body).toMatchObject({ code: 'RECIPE_NOT_FOUND' });
+            });
+
+            it.each([
+                ['no date', { date: undefined }],
+                ['no meal type', { mealType: undefined }],
+                ['no recipe', { recipeId: undefined }],
+                ['no number of people', { peopleCount: undefined }],
+                ['0 people', { peopleCount: 0 }],
+                ['-1 people', { peopleCount: -1 }],
+                ['1.5 people', { peopleCount: 1.5 }],
+                ['"4" people', { peopleCount: '4' }],
+                ['101 people', { peopleCount: 101 }],
+                ['3000000000 people', { peopleCount: 3000000000 }],
+                ['2026-02-30', { date: '2026-02-30' }],
+                ['a date with a time', { date: '2026-11-02T10:00:00' }],
+                ['0000-01-01', { date: '0000-01-01' }],
+                ['BRUNCH', { mealType: 'BRUNCH' }],
+                ['a recipe id that is not a UUID', { recipeId: 'not-a-uuid' }],
+                ['an unknown field', { id: '3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f' }],
+                ['SQL-like text', { date: "2026-11-02' OR '1'='1" }],
+            ])('answers 400 in the contract format with %s', async (_, change) => {
+                const response = await post({
+                    ...slot,
+                    recipeId: burgerId,
+                    peopleCount: 4,
+                    ...change,
+                }).expect(400);
+
+                expect(contractErrors('post', '/planned-meals', response)).toEqual([]);
+                expect(await app.get(PrismaService).plannedMeal.count()).toBe(0);
+            });
+        });
     });
 });
